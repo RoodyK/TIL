@@ -8,3 +8,4 @@
 - [리눅스 기본 정의 및 개념 정리](https://github.com/RadiantK/TIL/blob/main/Liunx/Linux_definition.md)
 - [서버 구축 시 필요한 개념 및 명령어](https://github.com/RadiantK/TIL/blob/main/Liunx/server_build_concept_command.md)
 - [하드디스크 관리와 사용자별 공간 할당](https://github.com/RadiantK/TIL/blob/main/Liunx/HardDisk_Manage.md)
+- [셸 스크립트(Shell Script)](https://github.com/RadiantK/TIL/blob/main/Liunx/Shell_Script.md)
