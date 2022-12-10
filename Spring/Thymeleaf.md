@@ -1,3 +1,5 @@
+# 타임리프(Thymeleaf) 정리
+
 SSR(Server Side Rendering)은 JSP만 사용해보다가 스프링에 더 적합한 Thymeleaf를 사용하며 내용을 정리해본다.
 기본적으로 jstl을 사용해봤고 el태그에 대해서 전반적으로 아는 개발자라면 더 편하게 이해할 수 있다.
 
