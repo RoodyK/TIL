@@ -9,3 +9,11 @@
 - [서버 구축 시 필요한 개념 및 명령어](https://github.com/RadiantK/TIL/blob/main/Liunx/server_build_concept_command.md)
 - [하드디스크 관리와 사용자별 공간 할당](https://github.com/RadiantK/TIL/blob/main/Liunx/HardDisk_Manage.md)
 - [셸 스크립트(Shell Script)](https://github.com/RadiantK/TIL/blob/main/Liunx/Shell_Script.md)
+
+## Spring
+- [Thymeleaf](https://github.com/RadiantK/TIL/blob/main/Spring/Thymeleaf.md)
+
+
+## Java
+- [제네릭](https://github.com/RadiantK/TIL/blob/main/Java/Generic.md)
+- [Enum](https://github.com/RadiantK/TIL/blob/main/Java/Enum.md)
