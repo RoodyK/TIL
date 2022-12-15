@@ -10,6 +10,7 @@
 - [하드디스크 관리와 사용자별 공간 할당](https://github.com/RadiantK/TIL/blob/main/Liunx/HardDisk_Manage.md)
 - [셸 스크립트(Shell Script)](https://github.com/RadiantK/TIL/blob/main/Liunx/Shell_Script.md)
 
+
 ## Spring
 - [Thymeleaf](https://github.com/RadiantK/TIL/blob/main/Spring/Thymeleaf.md)
 
@@ -17,3 +18,8 @@
 ## Java
 - [제네릭](https://github.com/RadiantK/TIL/blob/main/Java/Generic.md)
 - [Enum](https://github.com/RadiantK/TIL/blob/main/Java/Enum.md)
+
+
+## Git
+- [깃과 깃의 영역 및 상태](https://github.com/RadiantK/TIL/blob/main/Git/Git_State.md)
+- [깃의 명령어 정리](https://github.com/RadiantK/TIL/blob/main/Git/Git_Command.md) 
