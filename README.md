@@ -18,8 +18,15 @@
 ## Java
 - [제네릭](https://github.com/RadiantK/TIL/blob/main/Java/Generic.md)
 - [Enum](https://github.com/RadiantK/TIL/blob/main/Java/Enum.md)
+- [어노테이션 사용법](https://github.com/RadiantK/TIL/blob/main/Java/Annotation.md)
+- [가비지 컬렉션](https://github.com/RadiantK/TIL/blob/main/Java/Garbage_Collection.md)
 
 
 ## Git
 - [깃과 깃의 영역 및 상태](https://github.com/RadiantK/TIL/blob/main/Git/Git_State.md)
 - [깃의 명령어 정리](https://github.com/RadiantK/TIL/blob/main/Git/Git_Command.md) 
+
+
+## Database
+- [Database와 SQL 정리](https://github.com/RadiantK/TIL/blob/main/Database/DB_and_SQL.md)
+- [트랜잭션](https://github.com/RadiantK/TIL/blob/main/Database/Transaction.md)
