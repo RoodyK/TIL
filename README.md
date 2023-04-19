@@ -12,10 +12,12 @@
 
 
 ## Spring
+- [IoC와 DI](https://github.com/RadiantK/TIL/blob/main/Spring/IoC_DI.md)
 - [Thymeleaf](https://github.com/RadiantK/TIL/blob/main/Spring/Thymeleaf.md)
 
 
 ## Java
+- [객체지향 프로그래밍](https://github.com/RadiantK/TIL/blob/main/Java/OOP.md)
 - [제네릭](https://github.com/RadiantK/TIL/blob/main/Java/Generic.md)
 - [Enum](https://github.com/RadiantK/TIL/blob/main/Java/Enum.md)
 - [어노테이션 사용법](https://github.com/RadiantK/TIL/blob/main/Java/Annotation.md)
@@ -31,6 +33,8 @@
 - [Database와 SQL 정리](https://github.com/RadiantK/TIL/blob/main/Database/DB_and_SQL.md)
 - [트랜잭션](https://github.com/RadiantK/TIL/blob/main/Database/Transaction.md)
 
+## HTTP
+- [HTTP 메시지](https://github.com/RadiantK/TIL/blob/main/HTTP/HTTP_Message.md)
 
 ## CleanCode
 - [02. 의미있는 이름](https://github.com/RadiantK/TIL/blob/main/CleanCode/02_%EC%9D%98%EB%AF%B8%EC%9E%88%EB%8A%94%EC%9D%B4%EB%A6%84.md)
