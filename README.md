@@ -8,7 +8,8 @@
 - [리눅스 기본 정의 및 개념 정리](https://github.com/RadiantK/TIL/blob/main/Liunx/Linux_definition.md)
 - [서버 구축 시 필요한 개념 및 명령어](https://github.com/RadiantK/TIL/blob/main/Liunx/server_build_concept_command.md)
 - [하드디스크 관리와 사용자별 공간 할당](https://github.com/RadiantK/TIL/blob/main/Liunx/HardDisk_Manage.md)
-- [셸 스크립트(Shell Script)](https://github.com/RadiantK/TIL/blob/main/Liunx/Shell_Script.md)
+- [쉘 스크립트(Shell Script)](https://github.com/RadiantK/TIL/blob/main/Liunx/Shell_Script.md)
+- [디렉토리 구조](https://github.com/RadiantK/TIL/blob/main/Liunx/Directory_Structure.md)
 
 
 ## Spring
@@ -33,8 +34,13 @@
 - [Database와 SQL 정리](https://github.com/RadiantK/TIL/blob/main/Database/DB_and_SQL.md)
 - [트랜잭션](https://github.com/RadiantK/TIL/blob/main/Database/Transaction.md)
 
+
 ## HTTP
 - [HTTP 메시지](https://github.com/RadiantK/TIL/blob/main/HTTP/HTTP_Message.md)
+- [프록시(Proxy)](https://github.com/RadiantK/TIL/blob/main/HTTP/Proxy.md)
+- [캐시(Cache)](https://github.com/RadiantK/TIL/blob/main/HTTP/Cache.md)
+- [보안 HTTP(HTTPS)](https://github.com/RadiantK/TIL/blob/main/HTTP/HTTPS.md)
+
 
 ## CleanCode
 - [02. 의미있는 이름](https://github.com/RadiantK/TIL/blob/main/CleanCode/02_%EC%9D%98%EB%AF%B8%EC%9E%88%EB%8A%94%EC%9D%B4%EB%A6%84.md)
