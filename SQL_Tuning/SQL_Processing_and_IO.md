@@ -214,14 +214,14 @@ SELECT /*+ FULL(EMP */ -> 무효
 
 : OR 또는 IN-List 조건을 OR-Expansion으로 유도  
 
-`**NO_EXPAND**`
+`NO_EXPAND`
 
 : OR 또는 IN-List 조건에 대한 OR-Expansion 방지  
 <br/>
 
 **병렬 처리**
 
-`**PARALLEL**`
+`PARALLEL`
 
 : 테이블 스캔 또는 DML을 병렬방식으로 처리하도록 유도  
 
