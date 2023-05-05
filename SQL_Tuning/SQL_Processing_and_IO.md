@@ -392,6 +392,9 @@ DBMS가 데이터를 읽고 쓰는 단위는 블록이다.
 테이블뿐만 아니라 인덱스도 블록 단위로 데이터를 읽고 쓴다.  
 <br/>
 
+![Untitled](https://user-images.githubusercontent.com/95058915/236508804-0519dfc8-c02f-403c-ab70-73be413f1680.png)
+<br/>
+
 ```sql
 -- 블록 사이즈 확인
 show parameter block_size;
@@ -403,7 +406,7 @@ show parameter block_size;
 
 테이블, 인덱스 블록을 액세스(읽는) 하는 방식으로는 두 방법이 있다.
 
-![Untitled (3)](https://user-images.githubusercontent.com/95058915/236456368-2766e244-c931-4fc1-a4ad-9e67ceda3f00.png)
+![Untitled (2)](https://user-images.githubusercontent.com/95058915/236509119-19814fa8-4725-4775-84f5-6b9505be0910.png)
 <br/>
 
 **시퀀셜 엑세스**  
