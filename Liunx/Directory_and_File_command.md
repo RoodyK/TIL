@@ -318,6 +318,9 @@ stat 파일명
 
 ```bash
 history
+
+# 히스토리 사용했던 명령어 초기화
+history -c
 ```
 <br/>
 <br/>
