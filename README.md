@@ -10,6 +10,7 @@
 - [하드디스크 관리와 사용자별 공간 할당](https://github.com/Reffy08/TIL/blob/main/Liunx/HardDisk_Manage.md)
 - [쉘 스크립트(Shell Script)](https://github.com/Reffy08/TIL/blob/main/Liunx/Shell_Script.md)
 - [디렉토리 구조](https://github.com/Reffy08/TIL/blob/main/Liunx/Directory_Structure.md)
+- [디렉토리, 파일 관련 명령어](https://github.com/RadiantK/TIL/blob/main/Liunx/Directory_and_File_command.md)
 
 
 ## Spring
