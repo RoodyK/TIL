@@ -1,5 +1,15 @@
 # 02. 설정
 
+## MySQL 서버의 시작과 종료
+
+```bash
+# 초기 데이터파일, 로그 파일을 생성하고 비밀번호가 없는 관리자 계정 root 생성
+mysqld --defaults-file=/etc/my.cnf --initalize-insecure
+
+# 비밀번호가 있는 root 계정 생성
+mysqld --defaults-file=/etc/my.cnf --initalize
+```
+
 ### 서버 시작 종료
 
 MySQL 서버에서는 실제 트랜잭션이 정상적으로 커밋돼도 데이터 파일에 변경된 내용이 기록되지 않고 로그 파일(리두 로그)에만 기록돼 있을 수 있다.  
@@ -29,8 +39,38 @@ MySQL 서버가 시작되거나 종료될 때는 MySQL 서버(InnoDB 스토리�
 MySQL접속을 시도하는 방법
 
 ```bash
-# MySQL 소켓 파일을 이용해 접속하는 예
 mysql -uroot -p --host=localhost --socket=/tmp/mysql.sock
 
+mysql -uroot -p --host=127.0.0.1 --port=3306
 
+mysql -uroot -p
 ```
+<br/>
+
+첫 번째는 MySQL 소켓 파일을 이용해 접속하는 예다.  
+<br/>
+
+두 번째는 TCP/IP를 통해 로컬호스트로 접속하는 예로, 일반적으로 포트를 명시한다.  
+로컬 서버에 설치된 MySQL이 아니라 원격 호스트에 있는 MySQL 서버에 접속할 때는 이 방법을 사용한다.  
+--host=localhost 옵션을 사용하면 MySQL 클라이언트 프로그램은 항상 소켓 파일을 통해 MySQL 서버에 접속하게 되는데, 이는 'Unix domain socket'을 이용하는 방식으로 유닉스 프로세스 간 통신(IPC: Inter Process Communication)의 일종이다.  
+127.0.0.1을 사용하는 경우는 자기 서버를 가리키는 루프백(loopback) IP이기는 하지만 TCP/IP 통신 방식을 사용하는 것이다.  
+<br/>
+
+세 번째는 별도로 호스트 주소와 포트를 명시하지 않는다.  
+기본값으로는 호스트는 localhost가 되며 소켓 파일을 사용하게 되는데, 소켓 파일의 위치는 MySQL 서버의 설정 파일에서 읽어서 사용한다.   
+MySQL 서버가 가동될 때 만들어지는 유닉스 소켓 파일은 서버를 재시작하지 않으면 다시 만들어낼 수 없기 때문에 실수로 삭제하지 않도록 주의해야 한다.  
+유닉스, 리눅스에서 mysql 클라이언트 프로그램을 실행하는 경우에는 myysql 프로그램의 경로를 PAYH 환경변수에 등록해둔다.  
+<br/>
+
+```sql
+-- 데이터베이스 목록 확인
+SHOW DATABASES;
+```
+<br/>
+
+## MySQL 서버 업그레이드
+
+1. 인플레이스 업그레이드(IN-Place Upgrade) : MySQL 서버의 데이터 파일을 그대로 두고 업그레이드하는 방법
+2. 논리적 업그레이드(Logical Upgrade) : mysqldump 도구 등을 이용해 MySQL 서버의 데이터를 SQL 문장이나 텍스트 파일로 덤프한 후, 새로 업그레이드된 버전의 MySQL 서버에서 덤프된 데이터를 적재하는 방법  
+
+인플레이스 업그레이드는 여러 제약사항이 있지만 업그레이드 시간을 크게 단축할 수 있고, 논리적 업그레이드는 제약은 없지만 업그레이드 시간이 오래걸린다.  
