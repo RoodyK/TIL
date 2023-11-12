@@ -232,3 +232,59 @@ RESET PERSIST IF EXISTS max_connections;
 RESET PERSIST;
 ```
 
+<br/>
+
+### my.cnf 파일
+MySQL 8.0 서버의 시스템 변수는 대략 570개 수준이며, 플러그인 및 컴포넌트에 따라 더 늘어날 수 있다.  
+MySQL 서버를 제대로 사용하려면 시스템 변수에 대한 이해가 필요하다.  
+
+```txt
+[mysqld]
+server-id=1
+
+user=mysql
+datadir=/data/mysql/
+default_storage_engine=innodb
+default_tmp_storage_engine=innodb
+table_open_cache=30000
+table_open_cache_instance=16
+
+open-files-limit=65535
+default-time-zone='+09:00'
+socket=/tmp/mysql.sock
+local_infile=OFF
+block_encryption_mode='aes-256-ecb'
+
+core_file
+innodb_buffer_pool_in_core_file=OFF
+
+max_allowed_packet=67108864
+explicit_defaults_for_timestamp=ON
+sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+
+character-set-server=utf8mb4
+character-set-filesystem=utf8mb4
+collation_server=utf8mb4_0900_ai_ci
+skip-character-set-client-handshake
+
+max_connections=8000
+max_connect_errors=999999
+
+activate_all_roles_on_login=1
+skip-name-resolve
+
+ngram_token_size=2
+max_help_table_size=10M
+tmp_table_size=10M
+tmpdir=/data/mytmp/
+secure-file-priv=/data/securefile/
+default_password_lifetimme=0
+
+sysdate-is-dow
+
+#### InnoDB -------------------------------------------
+innodb_sort_buffer_size=64M
+
+innodb_data_home_dir=/data/mysql/
+...
+```
