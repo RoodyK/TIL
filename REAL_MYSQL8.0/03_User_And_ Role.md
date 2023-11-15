@@ -286,3 +286,79 @@ mysql.global_grants
 <br/>
 <br/>
 
+## 역할(Role)
+
+8.0 버전부터 권한을 묶어서 역할(Role)을 사용할 수 있게 됐다.  
+실제 서버 내부적으로 역할(Role)은 계정과 똑같은 모습을 하고 있다.  
+
+```sql
+-- Role 정의
+CREATE ROLE role_emp_read, role_emp_write;
+```
+
+위의 정의는 빈 껍데기만 있는 역할을 정의한 것이며 GRANT 명령으로 역할에 실질적인 권한을 부여하면 된다.   
+<br/>
+
+```sql
+GRANT SELECT ON employees.* TO role_emp_read;
+GRANT INSERT, UPDATE, DELETE ON employees.* TO role_emp_write;
+```
+
+권한을 사용하기 위해서는 계정에 부여해야 한다. 
+```sql 
+CREATE USER reader@'localhost' IDENTIFIED BY 'asdf1234'
+CREATE USER writer@'localhost' IDENTIFIED BY 'asdf1234'
+
+GRANT role_emp_read TO reader@'127.0.0.1'
+GRANT role_emp_write TO wirter@'127.0.0.1'
+```
+<br/>
+
+`SHOW GRANTS` 명령으로 계정이 가진 권한을 확인할 수 있다.  
+
+이 상태에서 reader, writer 계정으로 로그인해서 DB 데이터를 읽기, 쓰기를 해도 권한이 없다는 오류를 만나게 된다.
+
+계정이 역할을 사용할 수 있게 하려면 SET ROLE 명령을 실행해 해당 역할을 활성화 해야 한다.
+
+```sql
+SELECT current_role();
+SELECT 'role_emp_read';
+SELECT current_role();
+
+SELECT COUNT(*) FROM emp.employees;
+```
+<br/>
+
+MySQL 서버의 역할이 수동적으로 보이는데, 서버에 로그인할 때 역할을 자동으로 활성화할지 여부를 activate_all_roles_on_login 시스템 변수로 설정할 수 있다.  
+시스템 변수가 ON으로 설정되면 매번 SET ROLE 명령으로 역할을 활성화하지 않아도 로그인과 동시에 부여된 역할이 자동으로 활성화된다.  
+
+`SET GLOBAL activate_all_roles_on_login=ON;`  
+<br/>
+
+MySQL 서버의 역할은 사용자 계정과 거의 같은 모습을 하고 있으며, 서버 내부적으로 역할과 계정은 동일한 객체로 취급한다. 단지 하나의 사용자 계정에서 다른 사용자 계정이 가진 권한을 병합해서 권한 제어가 가능해졌을 뿐이다.  
+
+```sql
+-- 권한과 사용자 계정이 구분없이 저장된 것을 확인 가능
+SELECT user, host, account_locked FROM mysql.user;
+```
+
+서버에서는 하나의 계정에 다른 계정의 권한을 병합하기만 하면 되므로 MySQL 서버는 역할과 계정을 구분할 필요가 없다.  
+
+계정을 생성할 때는 계정명@호스트 형식으로 함꼐 명시하지만, ROLE을 생성할 떄는 호스트 부분을 명시하지 않는다.  이 때 호스트 부분을 따로 명시하지 않으면 모든 호스트(%)가 자동으로 추가된다.  
+
+```sql
+CREATE ROLE role_emp_read;
+CREATE ROLE role_emp_read@'%';
+```
+
+역할과 계정을 명확하게 구분하고자 한다면 데이터베이스 관리자가 식별할 수 있는 prefix나 키워드를 추가해 역할의 이름을  선택하는 방법을 권장한다.  
+
+역할과 계정은 내외부적으로 동일한 객체라고 했는데, `CREATE ROL` 명령어와 `CREATE USER` 를 구분해서 지원하는 이유는 데이터베이스 관리의 직무를 분리할 수 있게 해서 보안을 강화하는 용도로 사용될 수 있게 하기 위해서다.  
+CREATE USER 명령에 대해서는 권한이 없지만 CREATE ROLE 명령만 실행 가능한 사용자는 역할을 생성할 수 있다. 이렇게 생성된 역할은 계정과 동일한 객체를 생성하지만 실제 이 역할은 account_locked 컬럼의 값이 'Y'로 설정돼 있어서 로그인 용도로 사용할 수 없게 된다.  
+
+`mysql.default_roles` : 계정별 기본 역할  
+`mysql.role_edges` : 역할에 부여된 역할 관계 그래프  
+
+
+
+
