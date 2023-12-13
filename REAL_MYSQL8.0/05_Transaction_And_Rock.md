@@ -202,3 +202,143 @@ AUTO_INCREMENT 값이 한번 증가하면 절대 줄지 안흔ㄴ 이유는 잠�
 <br/>
 
 ### 인덱스와 잠금
+
+InnoDB의 잠금은 레코드를 잠그는 것이 아니라 인덱스를 잠그는 방식으로 처리된다. 즉, 변경해야 할 레코드를 찾기 위해 검색한 인덱스의 레코드를 모두 락을 걸어야 한다.  
+
+![index_lock](https://blog.kakaocdn.net/dn/4BK7Z/btrExHfRuns/OI4GC5Cv3JtEBxweRjOma1/img.png)  
+
+데이터를 업데이트 해야할 때 first_name 컬럼 조건에 해당하는 데이터가 250건이며 인덱스가 걸려있고, last_name을 같이 검색 할 때(데이터 1건), `update ... where first_name = 'kang' and last_name = 'min'` 업데이트 쿼리 실행 시 인덱스가 걸린 250건의 데이터가 모두 잠기게 된다.  
+이처럼 UPDATE 문장에 대한 적절한 인덱스가 준비되어 있지 않다면 동시성이 매우 떨어지게 된다.  
+만약 테이블에 인덱스가 하나도 없다면 모든 레코드에 락을 걸게 된다.  
+
+<br/>
+
+### 레코드 수준의 잠금 확인 및 해제
+
+InnoDB 스토리지 엔진을 사용하는 테이블의 레코드 수준 잠금은 테이블 수준의 잠금보다는 조금 더 복잡하다.  
+레코드 수준의 잠금은 테이블의 레코드 각각에 잠금이 걸리므로 그 레코드가 자주 사용되지 않는다면 오랜 시간 동안 잠겨진 상태로 남아 있어도 잘 발견되지 않는다.  
+
+5.1 버전부터 레코드 잠금과 잠금 대기에 대한 조회가 가능하므로 쿼리 하나만 실행해 보면 잠금과 잠금 대기를 확인할 수 있다.  
+강제로 잠금을 해제하려면 `KILL` 명령을 이용해 MySQL 서버의 프로세스를 강제로 종료하면 된다.  
+
+8.0 버전부터는 information_schema의 정보를 조금씩 제거하고, performance_schema의 data_locks, data_lock_waits 테이블로 락을 확인 가능하다.  
+
+```sql
+--작업중인 프로세스 목록 확인
+SHOW PROCESSLIST;
+
+-- id가 17인 스레드 강제 종료
+KILL 17;
+```
+
+<br/>
+<br/>
+
+## MySQL의 격리 수준
+트랜잭션의 격리 수준(isolation level)이란 여려 트랜잭션이 동시에 처리될 때 특정 트랜잭션이 다른 트랜잭션에서 변경하거나 조회하는 데이터를 볼 수 있게 허용할지 말지를 결정하는 것이다.  
+READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE 4가지로 나뉜다.  
+뒤로 갈수록 경리 정도가 높아지며, 동시 처리 성능은 떨어진다.  
+서버의 처리 성능은 SERIALIZEABLE 격리 수준이 아니라면 크게 성능의 개선이나 저하는 발생하지 않는다.  
+
+| | DIRTY READ | NON-REPEATABLE READ | PHANTOM READ |
+| :-- | :-- | :-- |:-- |
+| **READ UNCOMMITTED**  | 발생  | 발생  | 발생 |
+| **READ COMMITTED**    | 없음  | 발생  | 발생 |
+| **REPEATABLE READ**   | 없음  | 없음  | 발생(InnoDB는 없음) |
+| **SERIALIZEABLE**     | 없음  | 없음  | 없음 |  
+
+
+<br/>
+
+### READ UNCOMMITTED
+
+![Title](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FSvntH%2FbtrENuuUQBp%2FoKQhts7BvDKQ54GMouc961%2Fimg.png)  
+
+READ COMMITTED 격리 수준에서는 각 트랜잭션의 변경 내용이 COMMIT이나 ROLLBACK 여부에 상관없이 다른 트랜잭션에서 보인다.  
+
+<br/>
+
+### READ UNCOMMITTED 문제점
+어떤 트랜잭션에서 처리한 작업이 완료되지 않았는데도 다른 트랜잭션에서 볼 수 있는 현상인 더티 리드(Dirty read) 현상이 발생한다.  
+더티 리드는 데이터가 나타났다가 사라졌다 하는 현상을 초리해여 개발자와 사용자를 혼란스럽게 만든다.  
+예를 들어 사용자 A가 트랜잭션을 시작한 뒤 'Lara'라는 데이터를 INSERT한 뒤, 사용자 B는 'Lara'라는 사용자가 존재한다고 생각하고 작업을 하는데 사용자 A가 롤백을하게 되면 없는 데이터를 존재한다고 생각하고 작업하게 된다.  
+즉, 데이터 정합성에 문제가 생긴다.  
+
+<br/>
+
+### READ COMMITTED
+
+![READ COMMITTED](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FNt1XD%2FbtrEOGVFjkU%2FCf66A2lqbKJXiqocmtqYI0%2Fimg.png)  
+
+READ COMMITTED 격리 수준에서는 어떤 트랜잭션에서 데이터를 변경했더라도 COMMIT이 완료된 데이터만 다른 트랜잭션에서 조회할 수 있다.  
+
+이 레벨에서는 더티 리드 같은 현상이 발생하지 않는다. 
+
+사용자 A가 트랜잭션을 시작하고 UPDATE로 데이터를 변경하면 이전 데이터를 언두 영역으로 백업하고, 사용자 B가 변경된 레코드를 조회했을 때 아직 커밋되기 전이라면 언두 영역에 있는 데이터가 조회된다.  
+즉, 어떤 트랜잭션에서 변경한 내용이 커밋되기 전까지는 다른 트랜잭션에서 변경 내역을 조회할 수 없다.  
+
+<br/>
+
+### READ COMMITTED 문제점
+
+이 격리 수준에서는 NON-REPEADABLE READ(반복 불가능한 읽기) 문제가 발생한다.  
+
+![NON-REPEATABLE READ](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcuzCuQ%2FbtrELUunPyR%2FDaoXlNRyRu0owx0exjPCpk%2Fimg.png)  
+
+사용자 B가 트랜잭션을 시작하고 'Todo'인 사용자를 검색했는데 일치하는 결과가 없었지만, 사용자 A가 트랜잭션을 시작하고 번호가 50000인 사용자를 'Todo'로 수정 후 커밋한 뒤에 사용자 B가 똑같은 'Todo'인 사용자를 조회하면 결과가 나타난다.  
+이는 똑같은 SELECT 쿼리를 실행했을 때는 항상 같은 결과를 가져와야 한다는 "REPEATABLE READ" 정합성에 어긋난다.  
+
+이는 입출금 처리와 같은 금전적인 처리에서 총합을 조회할 때, 총합을 계산하는 SELECT 쿼리마다 다른 결과를 가져오는 문제를 가져올 것이다.  
+
+중요한 것은 사용중인 트랜잭션의 격리 수준에 의해 실행하는 SQL 문장이 어떤 결과를 가져오게 되는지를 정확하게 여측할 수 있어야 한다.  
+
+<br/>
+
+### REPEATABLE READ
+
+MySQL의 InnoDB 스토리지 엔진에서 기본적으로 사용되는 격리 수준이다.  
+바이너리 로그를 가진 MySQL 서버에서는 최소 REPEATABLE READ 격리  수준 이상을 사용해야 한다.  
+이 수준에서는 "NON-REPEATABLE READ" 문제가 발생하지 않으며 SELECT 쿼리 문장도 트랜잭션 내에서만 작동한다.  
+InnoDB 스토리지 엔진은 트랜잭션이 ROLLBACK될 가능성에 대비해 변경되기 전 레코드를 Undo 공간에 백업해두고 실제 레코드 값을 반영한다.  
+
+REPEATABLE READ는 MVCC를 위해서 언두 영역에 백업된 이전 데이터를 이용해 동일 트랜잭션 내에서는 동일한 결과를 보여줄 수 있게 보장한다.  
+READ COMMITTED도 MVCC를 이용해 COMMIT되기 전의 데이터를 보여주지만 둘의 차이는 언두 영역에 백업된 레코드의 여러 버전 가운데 몇 번째 이전 버전까지 찾아 들어가야 하느냐에 있다.  
+
+InnoDB의 트랜잭션은 고유한 트랜잭션 번호를 가지며(순차적), 언두 영역에 백업된 모든 레코드에는 변경을 발생시킨 트랜잭션의 번호가 포함돼 있다.  
+그리고 언두 영역의 백업된 데이터는 InnoDB 스토리지 엔진이 불필요하다고 판단하는 시점에 주기적으로 삭제한다.  
+REPEATABLE READ 격리 수준에서는 MVCC를 보장하기 위해 실행중인 트랜잭션 가운데 가장 오래된 트랜잭션 번호보다 트랜잭션 번호가 앞선 언두 영역의 데이터는 삭제할 수 없다.  
+그렇다고 가장 이전의 언두 데이터가 필요하지는 않으므로 특정 트랜잭션 번호 구간 내에서 백업된 언두 데이터가 보존돼야 한다.  
+
+![REPEATABLE READ](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FdscaOz%2FbtrENgjnHO1%2FqQ8TNIhs8Y6yOsaxYFHEak%2Fimg.png)  
+
+TX-6에 의해 두 데이터가 INSERT 됐다고 가정한다.  
+사용자 A는 TX-10, B는 TX-12의 트랜잭션 번호를 갖는다.  
+사용자 A가 사원의 이름을 'Toto'로 변경하고 커밋을 수행했지만, 사용자 B가 번호가 50000인 사원을 A의 트랜잭션 전후로 SELECT 했을 때 결과는 'Lara'라는 값을 가져온다.  
+사용자 B가 트랜잭션을 시작하며 TX-10을 부여받았는데, 그때부터 10번 트랜잭션 안에서 실행되는 모든 SELECT 쿼리는 TX-10보다 작은 트랜잭션 번호에서 변경한 것만 보게 된다.  
+
+
+그림에는 언두 영역에 백업된 데이터가 하나만 있는 것으로 표현했지만 백업데이터는 하나 이상 존재할 수 있고, 사용자가 트랜잭션을 시작하고 장시간 종료하지 않으면 언두 영역은 백업 데이터로 무한정 커질 수 있고 MySQL 서버의 처리 성능이 떨어질 수 있다.  
+
+<br/>
+
+### REPEATABLE READ 문제점
+
+![PHANTOM READ](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FoYX60%2FbtrEPcz1QwO%2F6Kx6TTDvabL9qhsaENpsC0%2Fimg.png)  
+
+`SELECT ... FOR UPDATE` 쿼리로 employees 테이블을 조회한 결과이다.  
+사용자 B는 트랜잭션을 시작한 후 SELECT를 수행한다.  
+REPEATABLE READ에서처럼 두 번의 SELECT 쿼리 결과는 똑같아야 하지만, 사용자 B가 시행하는 두 번의 `SELECT ... FOR UPDATE` 쿼리 결과는 서로 다르다.  
+다른 트랜잭션에서 수행한 변경 작업에 의해 레코드가 보였다 안 보였다 하는 현상을 PHANTOM READ(PHANTOM ROW)라고 한다.  
+`SELECT ... FOR UPDATE` 쿼리는 레코드에 쓰기 잠금을 걸어야 하는데 언두 레코드에는 잠금을 걸 수 없기 때문에, `SELECT ... FOR UPDATE`나 `SELECT ... LOCK IN SHARE MODE`로 조회되는 레코드는 언두 영역의 변경 전 데이터를 가져오는 것이 아니라 현재 레코드를 가져오게 되는 것이다.  
+
+<br/>
+
+### SERIALIZABLE
+
+가장 단순한 격리 수준이면서 가장 엄격한 격리 수준이다.  
+동시 처리 성능도 다른 트랜잭션 격리 수준부다 떨어진다.  
+InnoDB 테이블에서 순수한 SELECT 작업은 아무런 레코드 잠금도 설정하지 않고 실행되며, Non-locking consistent read(잠금이 필요 없는 일관된 읽기)를 의미하는 것이다.  
+
+SERIALIZABLE 격리 수준은 읽기 작업도 공유 잠금(읽기 잠금)을 획득해야만 하며, 동시에 다른 트랜잭션은 그러한 레코드를 변경하지 못하게 된다.  
+즉, 한 트랜잭션에서 읽고 쓰는 레코드를 다른 트랜잭션에서는 절대 접근할 수 없다.  
+SERIALIZABLE 격리 수준에서는 "PHANTOM READ" 문제가 발새하지 않지만, InnoDB 스토리지 엔진에서는 갭 락과 넥스트 키 락 덕분에 REPEATABLE READ 격리 수준에서도 "PHANTOM READ"가 발생하지 않기 때문에 굳이 사용할 필요는 없다.  
