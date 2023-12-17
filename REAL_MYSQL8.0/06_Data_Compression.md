@@ -129,3 +129,23 @@ Unzip_LRU 리스트는 압축이 적용되지 않은 테이블의 데이터 페�
 <br/>
 
 ### 테이블 압축 관련 설정
+
+#### innodb_cmp_per_index_enabled  
+테이블 압축이 사용된 테이블의 모든 인덱스별로 압축 성공 및 압축 실행 횟수를 수집하도록 설정한다.  
+OFF되면 테이블 단위의 성공 및 압축 실행횟수만 수집한다.  
+`information_schema.INNODB_CMP`에 기록되고, 인덱스 단위 수접 정보는 `information_schema.INNODB_CMP_PER_INDEX`에 기록된다.  
+
+#### innodb_compression_level  
+InnoDB 테이블 압축은 zlib 압축 알고리즘만 지원하는데, 압축률을 설정할 수 있게 해준다.  
+0~9까지 선택가능하며 값이 작을수록 압축 속도는 빨라지지만 저장공간은 커질 수 있고, 값이 커질수록 속도가 느려질 수 있지만 압축률은 높아진다.  
+압축 속도는 CPU의 자원 소모량과 동일한 의미로, 압축 속도가 빠르면 CPU를 적게 사용한다는 것이다.  
+
+#### innodb_compression_failure_threshold_pct, innodb_compression_pad_pct_max  
+테이블 단위로 압축 실패율이 `innodb_compression_failure_threshold_pct` 설정보다 커지면 압축을 실행하기 전 원본 데이터 페이지의 끝에 의도적으로 일정 크기의 빈 공간을 추가한다.  
+즉, 추가된 빈 공간은 압축률을 높여서 압축 결과가 KEY_BLOCK_SIZE 보다 작아지게 만드는 효과를 낸다.  
+빈 공간을 패딩이라고 하며, 압축 실패율이 높아질수록 계속 증가된 크기를 가지는데, 추가할 수 있는 패딩 공간의 최대 크기는 `innodb_compression_pad_pct_max` 설정값 이상을 넘을 수 없다.  
+`innodb_compression_pad_pct_max` 값은 전체 데이터 페이지 크기 대비 패딩 공간의 비율을 의미한다.  
+
+#### innodb_log_compressed_pages  
+서버가 비정상적으로 종료됐다가 다시 시작되는 경우 압축 알고리즘(zlib)의 버전 차이가 있더라도 복구 과정이 실패하지 않도록 InnoDB 스토리지 엔진은 압축된 데이터 페이지를 그대로 리두 로그에 기록한다.  
+이는 압축 알고리즘 업그레이드에는 도움이 되지만, 리두로그 증가량에 상당한 영향을 미칠 수 있다.  
