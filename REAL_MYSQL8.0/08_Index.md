@@ -647,6 +647,542 @@ B-Tree 인덱스의 특성 상 다음 조건에서는 사용할 수 없다.
   - LIKE로 좌측 일치 패턴(LIKE 'abc%')  
 
 <br/>
+<br/>
 
 ## R-Tree 인덱스 
+
+공간 인덱스(Spatial Index)는 R-Tree 인덱스 알고리즘을 이용해 2차원의 데이터를 인덱싱하고 검색하는 목적의 인덱스다.  
+기본 내부 메커니즘은 B-Tree와 흡사하며 B-Tree 인덱스를 구성하는 컬럼의 값이 1차원의 스칼라 값인 반면, R-Tree 인덱스는 2차원의 공간 개념 값이다.  
+
+MySQL은 GIS, GPS등 서비스를 공간 확장(Spatial Extention)을 이용하여 구현할 수 있게 해주며 다음 기능이 포함돼 있다.  
+
+- 공간 데이터를 저장할 수 있는 데이터 타입
+- 공간 데이터의 검색을 위한 공간 인덱스(R-Tree 알고리즘)
+- 공간 데이터의 연산 함수(거리 또는 포함 관계의 처리)  
+
+<br/>
+
+### 구조 및 특성 
+
+MySQL은 공간 정보의 저장 및 검색을 위해 여러가지 기하학적 도형(Geometry) 정보를 관리할 수 있는 데이터 타입을 제공한다.  
+
+![GEOMETRY](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fbxf18t%2FbtrGf1ymxcJ%2FZJBGGlPqcuelEgM0hTiu71%2Fimg.png)  
+
+그림의 마지막 GEOMETRY 타입은 나머지 3개의 슈퍼 타입으로 POINT, LINE, POLYGON 객체를 모두 저장할 수 있다.  
+
+<br/>
+
+공간 정보의 검색을 위한 R-Tree 알고리즘을 이해하려면 MBR이라는 개념이 필요하다.  
+MBR이란 "Minimum Bounding Rectangle"의 약자로 해당 도형을 감싸는 최소 크기의 사각형을 의미한다.  
+
+![MBR](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fbw2aRb%2FbtrGfxEmB0h%2F3kbhgi5oUS4kV4xPrq5W3K%2Fimg.png)  
+
+<br/>
+
+![Spatial-data](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FNOc7J%2FbtrGhwYnVVJ%2FQdYHras38iHfyAeb3kxed0%2Fimg.png)  
+
+X좌표와 Y좌표만 있는 포인트 데이터 또한 하나의 도형 객체가 될 수 있다. 이 도형이 저장됐을 때의 인덱스 구조를 이해하려면 도형들의 MBR이 어떻게 되는지 알아야 한다.  
+
+
+![Spatial-data-MBR](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcOwB4s%2FbtrGhVp5gub%2FSXs7AEqE0gFRRKOvrJTNq1%2Fimg.png)  
+
+- 촤상위 레벨: R1, R2
+- 차상위 레벨: R3 ~ R6
+- 최하위 레벨: R7 ~ R14
+
+최 하위 레벨의 MBR(각 도형을 제일 안쪽에서 둘러싼 점선 상자)은 각 도형 데이터의 MBR을 의미한다.  
+차상위 레벨의 MBR은 중간 크기의 MBR(도형 객체의 그룹)이다.  
+최상위 MBR은 R-Tree 루트 노드에 저장되는 정보이며, 차상위 그룹의 MBR은 R-Tree 노드의 브랜치 노드가 된다.  
+
+#### 공간(R-Tree, Spatial) 인덱스 구조
+
+![R-Tree-Structure](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FdXX01f%2FbtrGfVELomS%2F1SAtimlfRGlztKMZgjzkaK%2Fimg.png)  
+
+<br/>
+
+### R-Tree 인덱스의 용도
+
+R-Tree는 MBR 정보를 이용해 B-Tree 형태로 인덱스를 구축하므로 Rectangle의 'R'과 B-Tree의 'Tree'를 섞은 것으로, 공간(Spatial) 인덱스라고도 한다.  
+일반적으로 WGS84(GPS) 기준의 위도, 경도 좌표 저장에 주로 사용된다.  
+
+R-Tree는 각 도형(도형의 MBR)의 포함 관계를 이용해 만들어진 인덱스로, ST_Contains() 또는 ST-Within() 등과 같은 포함 관계를 비교하는 함수로 검색을 수행하는 경우에만 인덱스를 이용할 수 있다.  
+
+현재 버전에서는 St_Distance(), ST_Distance_Sphere() 함수는 공간 인덱스를 효율적으로 사용하지 못하기 때문에 공간 인덱스를 사용할 수 있는 ST_Contains(), ST-Within()를 이용해 거리 기반의 검색을 해야 한다.  
+
+```sql
+-- 사각상자 MBR에 대한 좌표 Px만 검색
+-- px = 좌표
+
+SELECT * FROM tb_location WHERE ST_Cntains(사각 상자, px);
+
+SELECT * FROM tb_location WHERE ST_Within(px, 사각 상자);
+
+SELECT * FROM tb_location 
+WHERE ST_Contains(사각 상자, px) -- 공간 좌표 px가 사각 상자에 포함되어 있는지 확인
+AND ST_Distance_Sphere(p, px) <= 5 * 1000 -- 5Km
+```
+
+<br/>
+<br/>
+
+## 전문 검색 인덱스
+
+이전까지 본 인덱스 알고리즘은 일반적으로 크지 않은 데이터 또는 이미 키워드화한 작은 값에 대한 인덱싱 알고리즘이었다.  
+B-Tree인덱스는 실제 컬럼 값이 1MB이더라도 전체를 사용하는 것이아닌 1000바이트(MyISAM), 3072바이트(InnoDB)까지만 잘라서 인덱스 키로 사용한다.  
+
+문서의 내용 전체를 인덱스화해서 특정 키워드가 포함된 문서를 검색하는 전문(Full Text) 검색에는 InnoDB나 MyISAM 스토리지 엔진이 제공하는 일반적인 용도의 B-Tree 인덱스를 사용할 수 없다.  
+문서 전체에 대한 분석과 검색을 위한 이러한 인덱싱 알고리즘을 전문 검색(Full Text Search)인덱스라고 하는데, 전문 검색 인덱스는 일반화된 기능의 명칭이지 전문 검색 알고리즘의 이름을 지칭하는 것은 아니다.  
+
+<br/>
+
+### 인덱스 알고리즘
+
+전문 검색에서는 문서 본문의 내용에서 사용자가 검색하게 될 키워드를 분석해 내고, 빠른 검색용으로 사용할 수 있게 이러한 키워드를 인덱스로 구축한다.  
+문서의 키워드를 인덱싱하는 기법에 따라 크게 단어의 어근 분석과 n-gram 분석 알고리즘으로 구분할 수 있다. 
+
+<br/>
+
+### 어근 분석 알고리즘
+
+MySQL 서버의 전문 검색 인덱스는 다음 두 과정을 거쳐 색인 작업이 수행된다.  
+- 불용어(Stop Word) 처리
+- 어근 분석(Stemming)  
+
+불용어 처리는 검색에서 별 가치가 없는 단어를 모두 필터링해서 제거하는 방법을 의미한다.  
+불용어의 개수는 많지 않기 때문에 알고리즘을 구현한 코드에 모두ㅡ 상수로 정의해서 사용하는 경우가 많고, 유연성을 위해 불용어 자체를 데이터베이스화해서 사용자가 추가, 삭제할 수 있게 구현하는 경우도 있다. (MySQL 제공)  
+
+어근 분석은 검색어로 선정된 단어의 뿌리인 원형을 찾는 작업이다.  
+MySQL 서버에서는 오픈소스 형태소 분석 라이브러리인 MeCab을 플러그인 형태로 사용할 수 있게 지원한다.  
+한글이나 일본어의 경우 영어와 같이 단어의 변형 자체는 거의 없기 때문에 어근 분석보다는 문장의 형태소를 분석해서 명사와 조사를 구분하는 기능이 더 중요한 편이다.  
+MeCab이 제대로 작동하려면 단어 사전과 문장을 해체해서 각 단어의 품사를 식별할 수 있는 문장의 구조 인식이 필요하다.  
+
+<br/>
+
+### n-gram 알고리즘
+
+MeCab을 위한 형태소 분석은 매우 전문적인 전문 검색 알고리즘이어서 만족할 만한 결과를 내기위해서는 많은 노력과 시간을 필요로 한다.  
+전문적인 검색 엔진을 고려하는 것이 아니라면 범용적으로 적용하기 쉽지 않아 이를 보완하기 위한 방법으로 n-gram 알고리즘이 도입됐다.  
+형태소 분석이 문장을 이해하는 알고리즘이라면, n-gram은 단순히 키워드를 검색해내기 위한 인덱싱 알고리즘이라고 할 수 있다.  
+
+n-gram이란 본문을 무조건 몇 글자씩 잘라서 인덱싱하는 방법이다.  
+형태소 분석보다는 알고리즘이 단순하고 국가별 언어에 대한 이해와 준비 작업이 필요 없는 반면, 만들어진 인덱스의 크기는 상당히 큰 편이다.  
+n-gram에서 n은 인덱싱할 키워드의 최소 글자 수를 의미하는데 일반적으로는 2글자 단위로 키워드를 쪼개서 인덱싱하는 2-gram(Bi-gram) 방식이 많이 사용된다.  
+
+```txt
+To be or not to be. That is the question
+```
+
+각 단어는 띄어쓰기와 마침표를 기준으로 10개의 단어로 구분되고, 2글자씩 중첩해서 토큰으로 분리된다.  
+주의해야 할 것은 각 글자가 중첩해서 2글자씩 토큰으로 구분됐다는 것이다. 10글자 단어라면 2-gram 알고리즘에서는 (10-1)개의 토큰으로 구분되며, 각 토큰을 인덱스에 저장하기만 하면 된다. 중복된 토큰은 하나의 인덱스 엔트리로 병합되어 저장된다.  
+
+<table>
+	<thead>
+		<tr>
+			<th>단어</th>
+			<th colspan="7">bi-gram(2-gram) 토큰</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<th>To</th>
+			<td>To</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>be</th>
+			<td>be</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>or</th>
+			<td>or</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>not</th>
+			<td>no</td>
+			<td>ot</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>to</th>
+			<td>to</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>be</th>
+			<td>be</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>That</th>
+			<td>Th</td>
+			<td>ha</td>
+			<td>at</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>is</th>
+			<td>is</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>the</th>
+			<td>th</td>
+			<td>he</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+		</tr>
+		<tr>
+			<th>question</th>
+			<td>qu</td>
+			<td>ue</td>
+			<td>es</td>
+			<td>st</td>
+			<td>ti</td>
+			<td>io</td>
+			<td>on</td>
+		</tr>
+	</tbody>
+</table>
+
+<br/>
+
+MySQL 서버는 이렇게 생성된 토큰들에 대해 불용어를 걸러내는 작업을 수행하는데, 이때 불용어와 동일하거나 불용어를 포함하는 경우 걸러서 버려버린다.  
+
+```sql
+-- 불용어 확인
+SELECT * FROM infromation_schema.INNODB_FT_DEFAULT_STOPWORD;
+```
+
+최종적으로 서버에서 실제 저장되는 인덱스 엔트리는 불용어를 포함하거나 불용어와 일치하는 부분을 제외한 단어만 전문 검색 인덱스에 등록한다.  
+이때 불용어와 한글자만 일치해도 불용어 포함으로 걸러진다.  
+
+전문 검색을 더 빠르게 하기 위한 2단계 인덱싱(프론테인드와 백엔드 인덱스)과 같은 방법도 있지만 MySQL 서버는 이렇게 구분된 토큰을 단순한 B-Tree 인덱스에 저장한다.  
+
+<br/>
+
+### 불용어 변경 및 삭제
+
+n-gram의 토큰 파싱 및 불용어 처리 예시에서 결과를 보면 ti, at, ha 같은 토큰들은 a와 i 철자가 불용어로 등록돼 있기 때문에 모두 걸러져서 버려졌다.  
+실제로 이 같은 불용어 처리는 사용자에게 도움이 되기보다는 사용자를 더 혼란스럽게 하는 기능일 수 있다. 그래서 불용어 처리 자체를 완전히 무시하거나 MySQL 서버에 내장된 불용어 대신 사용자가 직접 불용어를 등록하는 방법을 권장한다.  
+
+<br/>
+
+#### 전문 검색 인덱스의 불용어 처리 무시  
+
+불용어 처리를 무시하는 방법은 두 가지가 있다.  
+
+첫 번째는 스토리지 엔진에 관계없이 MySQL 서버의 모든 전문 검색 인덱스에 대해 불용어를 완전히 제거하는 것이다.  
+이를 위해서 MySQL 서버의 설정 파일(my.cnf)의 ft_stopword_file 시스템 변수에 빈 문자열을 설정하면 된다.  
+ft_stopword_file 시스템 변수는 MySQL 서버가 시작될 때만 인지하기 때문에 설정을 변경하면 서버를 재시작해야 반영된다.  
+
+`ft_stopword_file=''`  
+
+ft_stopword_file 시스템 변수는 MySQL 서버의 내장 불용어를 비활성화할 때도 사용할 수 있지만 사용자 정의 불용어를 적용할 때도 사용할 수 있다.  
+사용자가 직접 정의한 불용어 목록을 저장한 파일의 경로를 ft_stopword_file 시스템 변수에 설정하면 해당 경로의 파일에서 불용어 목록을 가져와서 적용한다.  
+
+두 번째로 InnoDB 스토리지 엔진을 사용하는 테이블의 전문 검색 인덱스에 대해서만 불용어 처리를 무시할 수도 있다.  
+InnoDb 테이블의 전문 검색 인덱스의 불용어 처리를 무시하려면 innodb_ft_enable_stopword 시스템 변수를 OFF로 설정하면 된다.  
+이 경우 innodb가 아닌 다른 스토리지 엔진을 사용하는 테이블은 여전히 내장 불용어 처리를 한다. 이 시스템 변수는 서버가 실행 중인 상태에서도 변경 가능하다.  
+
+<br/>
+
+#### 사용자 정의 불용어 사용  
+
+사용자 정의 불용어를 사용하는 방법은 두 가지다.  
+
+첫 번째 방법은 불용어 목록을 파일로 저장하고, MySQL 설정 파일에서 파일의 경로를 설정하는 것이다.  
+`ft_stopword_file='/Users/home/custom_stopword.txt'`  
+
+두 번째 방법은 InnoDB 스토리지 엔진을 사용하는 테이블의 전문 검색 엔진에서만 사용할 수 있는데, 불용어의 목록을 테이블로 저장하는 방식이다.  
+불용어 테이블을 생성하고, innodb_ft_server_stopword_table 시스템 변수에 불용어ㄹ 테이블을 설정하면 된다.  
+이때 불용어 목록을 변경한 이후 전문 검색 인덱스가 생성되야만 변경된 불용어기 적용된다.  
+
+```sql
+CREATE TABLE my_stopword(value VARCHAR(30)) ENGINE = INNODB;
+INSERT INTO my_stopword(value) VALUES('MySQL');
+
+SET GLOBAL innnodb_ft_server_stopword_table='mydb/my_stopword';
+ALTER TABLE tb_bi_gram ADD FULLTEXT INDEX fx_title_body(title, body) WITH PARSER ngram;
+```
+
+innodb_ft_user_stopword_table 시스템 변수를 이용하는 방법도 있는데, innodb_ft_server_stopword_table와 사용법은 동일하다.  
+단, 여러 전문 검색 인덱스가 서로 다른 불용어를 사용해야 하는 경우면 innodb_ft_server_stopword_table 시스템 변수를 이용하면 된다.  
+
+<br/>
+
+### 전문 검색 인덱스의 가용성
+
+전문 검색 인덱스 사용 조건
+- 쿼리 문장이 전문 검색을 위한 문법(MATCH ... AGAINST ...)을 사용
+- 테이블이 전문 검색 대상 컬럼에 대해서 전문 인덱스 보유  
+
+```sql
+CREATE TABLE tb_test (
+	doc_id INT, 
+	doc_body TEXT,
+	PRIMARY KEY (doc_id),
+	FULLTEXT KEY fx_docbody (doc_body) WITH PARSER ngram
+) ENGINE = InnoDB
+```
+
+`SELECT * FROM tb_test WHERE doc_body LIKE '%애플%';`  
+
+위 쿼리는 전문 검색 인덱스를 이용해 쿼리가 실행된 것이 아닌 풀 테이블 스캔으로 쿼리를 처리한다.  
+
+전문 검색 인덱스를 사용하려면 MATCH() AGAINST() 구문으로 검색 쿼리를 작성해야 하며, 전문 검색 인덱스를 구성하는 컬럼들은 MATCH 절의 괄호 안에 모두 명시돼야 한다.  
+
+`SELECT * FROM tb_test WHERE MATCH(doc_body) AGAINST('애플', IN BOOLEAN MODE)`  
+
+<br/>
+<br/>
+
+## 함수 기반 인덱스 
+
+일반적인 인덱스는 컬럼의 값 일부(컬럼의 값 앞부분) 또는 전체에 대해서만 인덱스 생성이 허용된다.  
+일반적인 인덱스가 아닌 컬럼의 값을 변형해서 만들어진 값에 대해 인덱스를 구축해야 할 때 함수 기반의 인덱스를 활용하면 된다.  
+
+#### 함수 기반 인덱스를 구현하는 방법  
+
+- 가상 컬럼을 이용한 인덱스
+- 함수를 이용한 인덱스  
+
+MySQL 서버의 함수 기반 인덱스는 인덱싱할 값을 계산하는 과정의 차이만 있을 뿐, 실제 인덱스의 내부적인 구조 및 유지관리 방법은 B-Tree 인덱스와 동일하다.  
+
+<br/>
+
+### 가상 컬럼을 이용한 인덱스
+
+```sql
+CREATE TABLE user (
+	user_id BIGINT,
+	first_name VARCHAR(10),
+	last_name VARCHAR(10),
+	PRIMARY KEY (user_id)
+);
+```
+
+위 테이블에서 first_name과 last_name을 합쳐서 검색해야 하는 요건이 있을 때 이전에는 두 컬럼을 합친 full_name 컬럼을 추가하고 모든 레코드에 대해 full_name을 업데이트 한 후 인덱스를 설정해야 했지만, 8.0 버전부터는 가상 컬럼을 추가하고 인덱스를 생성할 수 있게 됐다.  
+
+```sql
+ALTER TABLE user 
+ADD full_name VARCHAR(30) AS (CONCAT(first_name, ' ', last_name)) VIRTUAL
+ADD INDEX ix_fullname (full_name);
+
+INSERT INTO user VALUES (1, 'Matt', 'Lee');
+
+-- 가상 컬럼으로 설정된 인덱스에 대한 실행계획 확인
+EXPLAIN SELECT * FROM user WHERE full_name = 'Matt Lee';
+```
+
+가상 컬럼은 테이블에 새로운 컬럼을 추가하는 것과 같은 효과를 내기 때문에 실제 테이블의 구조가 변경된다는 단점이 있다.  
+
+<br/>
+
+### 함수를 이용한 인덱스
+
+8.0 버전부터 테이블의 구조를 변경하지 않고, 함수를 직접 사용하는 인덱스를 생성할 수 있게 됐다.  
+
+```sql
+CREATE TABLE user (
+	user_id BIGINT,
+	first_name VARCHAR(10),
+	last_name VARCHAR(10),
+	PRIMARY KEY (user_id),
+	INDEX ix_fullname ((CONCAT(first_name, ' ', last_name)))
+);
+```
+
+함수를 직접 사용하는 인덱스는 테이블의 구조는 변경하지 않고, 계산된 결과값의 검색을 빠르게 만들어준다.  
+함수 기반 인덱스를 제대로 활용하려면 반드시 조건절에 함수 기반 인덱스에 명시된 표현식이 그대로 사용돼야 한다.  
+조건절에 표현식이 다르다면 결과가 같아도 옵티마이저는 다른 표현식으로 간주해 함수 기반 인덱스를 사용하지 못한다.  
+
+```sql
+INSERT INTO user VALUES (1, 'Matt', 'Lee');
+
+EXPLAIN SELECT * FROM user WHERE CONCAT(first_name, ' ', last_name) = 'Matt Lee';
+```
+
+실행계획이 ix_fullname 인덱스를 사용하지 않는다면 collation_connection, collation_database, collation_server 시스템 변수 값을 통일하자.  
+
+<br/>
+<br/>
+
+## 멀티 밸류 인덱스  
+
+전문 검색 인덱스를 제외한 모든 인덱스는 인덱스 키와 레코드가 1:1 관계를 갖는다.  
+멀티 밸류(Multi-Value) 인덱스는 하나의 데이터 레코드가 여러 개의 키 값을 가질 수 있는 형태의 인덱스다.  
+일반적인 RDBMS를 기준으로 생각하면 이런 인덱스는 정규화에 위배되는 형태지만, 최근 RDBMS들이 JSON 데이터 타입을 지원하기 시작하면서 JSON 배열 타입의 필드에 저장된 원소들에 대한 인덱스 요건이 발생했다.  
+
+MySQL 서버는 멀티 밸류 인덱스의 지원 없이 JSON 타입의 컬럼만 지원했느넫, 8.0 버전부터 지원되기 시작했다.  
+
+```sql
+CREATE TABLE user (
+	user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+	first_name VARCHAR(10),
+	last_name VARCHAR(10),
+	credit_info JSON, 
+	INDEX my_creditscores ((CAST(credit_info -> '$.credit_scores' AS UNSIGNED ARRAY)))
+);
+```
+
+멀티 밸루 인덱스를 활용하기 위해서는 반드시 `MEMBER OF()`, `JSON_CONTAINS()`, `JSON_OVERLAPS()` 함수를 이용해서 검색해야 옵티마이저가 인덱스를 활용한 실행계획을 수립한다.  
+
+```sql
+SELECT * FROM user WHERE 360 MEMBER OF (credit_info -> $.credit_scores);
+
+EXPLAIN SELECT * FROM user WHERE 360 MEMBER OF (credit_info -> $.credit_scores);
+```
+
+<br/>
+<br/>
+
+## 클러스터링 인덱스
+
+클러스터링은 여러 개를 하나로 묶는다는 의미로 주로 사용된다.  
+MySQL 서버에서 클러스터링은 테이블의 레코드를 비슷한 것(프라이머리키를 기준으로)들끼리 묶어서 저장하는 형태로 구현되는데, 주로 비슷한 값들을 동시에 조회하는 경우가 많다는 점에서 착안한 것이다.  
+클러스터링 인덱스는 InnoDB에서만 지원한다.  
+
+<br/>
+
+### 클러스터링 인덱스 
+
+클러스터링 인덱스는 테이블의 프라이머리 키에 대해서만 적용된다. 프라이머리 키 값이 비슷한 레코드끼리 묶어서 저장하는 것을 클러스터링 인덱스라고 표현한다.  
+중요한 것은 프라이머리 키 값에 의해 레코드의 저장 위치가 결정된다는 것이다. 또한 프라이머리 키 값이 변경된다면 그 레코드의 물리적인 저장 위치가 바뀌어야 한다는 것을 의미하기도 한다.  
+프라이머리 키 값으로 클러스터링된 테이블은 PK값 자체에 대한 의존도가 크기 때문에 신중히 PK를 결정해야 한다.  
+
+클러스터링 인덱스는 PK 값에 의해 레코드 저장 위치가 결정되므로 인덱스 알고리즘이라기보다 테이블 레코드의 저장 방식이라고 볼 수 있다.  
+클러스터링 인덱스와 클러스터링 테이블은 동의어로 사용되기도 하며, 클러스터링의 기준이 되는 PK는 클러스터링 키라고도 표현한다.  
+InnoDB와 같이 항상 클러스터링 인덱스로 저장되는 테이블은 PK 기반의 ㅓㄱㅁ색이 매우 빠르며 대신 레코드의 저장이나 PK 변경이 상대적으로 느리다.  
+
+```txt
+B-Tree 인덱스도 인덱스 키 값으로 정렬되어 저장되지만, PK 값으로 정렬되어 저장된 경우만 클러스터링 인덱스라고 한다.
+``` 
+
+![clustering-index](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcJnInE%2FbtsudYzwZfs%2FQJjPAzrpQ9HjHluO23BdSK%2Fimg.png)  
+
+클러스터링 인덱스는 세컨더리 인덱스를 위한 B-Tree 리프 노드와는 달리 클러스터링 인덱스의 리프 노드에는 레코드의 모든 컬럼이 같이 저장돼 있다.  
+즉, 클러스터링 테이블은 그 자체가 하나의 거대한 인덱스 구조로 관리된다.  
+
+![clusterubg-index-update](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2Fc7Ilb5%2FbtsrZmCyZl1%2FGIUmAcb1Tel8k49VVfHk80%2Fimg.png);
+
+`UPDATE tb_test SET emp_no = 10002 WHERE emp_no 10007;`  
+
+클러스터링 테이블에서 PK가 일반적으로 변경되는 경우는 없겠지만, 변경됐을 때 3번 페이지에서 2번 페이지로 이동한 것을 확인할 수 있다. 이렇듯 PK가 변경되면 구조가 변경됨을 확인할 수 있다. (내부적으로 오버헤드 발생)  
+
+PK가 없는 InnoDB 테이블은 스토리지 엔진이 다음 우선순위대로 PK를 대체할 컬럼을 선택해서 클러스터링 인덱스(테이블)로 선택한다.  
+1. PK가 있으면 기본적으로 PK를 클러스터링 키로 선택
+2. NOT NULL 옵션의 유니크 인덱스중에서 첫 번째 인덱스를 클러스터링 인덱스로 선택
+3. 자동으로 유니크한 값을 가지도록 증가되는 컬럼을 내부적으로 추가한 후 클러스터링 키로 선택  
+
+InnoDB 스토리지 엔진이 적절한 클러스터링 키 후보를 찾지 못하는 경우, 엔진이 내부적으로 레코드의 일련번호 컬럼을 생성한다. 이 추가된 키는 사용자에게 노출되지 않으며, 쿼리 문장에 명시적으로 사용할 수 없다.  
+
+<br/>
+
+### 세컨더리 인덱스에 미치는 영향
+
+MyISAM, MEMORY 테이블 같은 클러스터링되지 않은 테이블은 INSERT 될 때 처음 저장된 공간에서 절대 이동하지 않는다.  
+데이터 레코드가 저장된 주소는 내부적 레코드 아이디(ROW ID) 역할을 한다. 그리고 PK나 세컨더리 인덱스의 각 키는 ROWID를 이용해 실제 데이터 레코드를 찾아온다.  
+MyISAM, MEMORY 테이블의 클러스터링키와 세컨더리 인덱스는 구조적으로 차이가 없다.  
+
+InnoDB 테이블에서 클러스터링 키 값이 변경될 때마다 데이터 레코드의 주소가 변경되고 그때마다 테이블의 모든 인덱스에 저장된 주소값을 변경해야 할 것이다.  
+이런 오베허드를 제거하기 위해 InnoDB 테이블(클러스터링 테이블)의 모든 세컨더리 인덱스는 해당 레코드가 저장된 추소가 아니라 프라이머리 키 값을 저장하도록 구현돼 있다.  
+
+```sql
+CREATE TABLE employees (
+	emp_no INT NOT NULL,
+	first_name VARCHAR(20) NOT NULL, 
+	PRIMARY KEY (emp_no),
+	INDEX ix_firstname (first_name)
+);
+
+SELECT * FROM employees WHERE first_name='Aamer';
+```
+
+MyISAM은 ix_first_name 인덱스를 검색해서 레코드의 주소를 확인한 후, 레코드의 주소를 이용해 최종 레코드를 가져온다.  
+
+InnoDB는 ix_first_name 인덱스를 검색해 레코드의 PK 값을 확인한 후, PK 인덱스를 검색해서 최종 레코드를 가져온다.  
+
+<br/>
+
+### 클러스터링 인덱스의 장점과 단점
+
+#### 장점  
+PK(클러스터링 키)로 검색할 때 처리 성능이 매우 빠름(특히, PK를 범위 검색하는 경우 매우 빠름)  
+테이블의 모든 세컨더리 인덱스가 PK를 가지고 있기 때문에 인덱스만으로 처리될 수 있는 경우가 많음(커버링 인덱스라고 함)  
+
+#### 단점  
+테이블의 모든 세컨더리 인덱스가 클러스터링 키를 갖기 때문에 클러스터링 키 값의 크기가 클 경우 전체적으로 인덱스의 크기가 커짐  
+세컨더리 인덱스를 통해 검색할 때 PK로 다시 한번 검색해야 하므로 처리 성능이 느림  
+INSERT 할 때 PK에 의해 레코드의 저장 위치가 결정되기 때문에 처리 성능이 느림  
+PK를 변경할 때 레코드를 DELETE하고 INSERT하는 작업이 필요하기 때문에 처리 성능이 느림  
+
+<br/>
+
+간단히 장점은 빠른 읽기, 단점은 느린 쓰기다.  
+온라인 트랜잭션 환경(OLTP, Online Transaction Processing)에서 쓰기와 읽기 비율이 2:8 또는 1:9 정도이기 때문에 읽기를 빠르게 유지하는 것은 중요하다.  
+
+<br/>
+
+### 클러스터링 테이블 사용시 주의사항 
+
+MyISAM과 같이 클러스터링되지 않은 테이블에 비해, InnoDB 테이블(클러스터링 테이블)의 주의점을 확인하자.  
+
+<br/>
+
+### 클러스터링 인덱스 키의 크기
+
+클러스터링 테이블의 경우 모든 세컨더리 인덱스가 PK(클러스터링 키) 값을 포함한다. 그래서 PK 크기가 커지면 세컨더리 인덱스도 자동으로 크기가 커진다.  
+일반적으로 테이블에 세컨더리 인덱스가 4~5개 정도 생성된다는 것을 고려하면 세컨더리 인덱스 크기는 급격히 증가한다.  
+
+프라이머리 키 크기 | 레코드당 증가하는 인덱스 크기 | 100만 건 레코드 저장 시 증가하는 인덱스 크기 
+:-- |:-- |:--
+**10바이트** | 10바이트 * 5 = 50바이트 | 50바이트 * 1000000 = 47MB
+**50바이트** | 50바이트 * 5 = 250바이트 | 250바이트 * 1000000 = 238MB
+
+<br/>
+
+레코드 한 건 한 건을 생각하면 50바이트쯤 괜찮지만 100만건만 돼도 인덱스 크기가 거의 190MB 증가했다. 1000만 건이 되면 1.9MB 증가한다.  
+인덱스가 커질수록 같은 성능을 내기 위해 그만큼의 메모리가 더 필요해지므로 InnoDB 테이블의 PK는 신중하게 선택해야 한다.  
 
