@@ -780,7 +780,7 @@ AND s.to_date >= now()
 WHERE e.first_name = 'Amor';
 ```
 
-위의 조인 쿼리를 수행할 때처럼 프로그래밍 언처에서 중첩된 반복 명령을 사용하는 것처럼 작동한다고 해서 NL 조인이라고 한다.  
+위의 조인 쿼리를 수행할 때처럼 프로그래밍 언어에서 중첩된 반복 명령을 사용하는 것처럼 작동한다고 해서 NL 조인이라고 한다.  
 레코드를 읽어서 다른 버퍼 공간에 저장하지 않고 즉시 드리븐 테이블의 레코드를 찾아서 반환함을 알 수 있다.
 
 ```sql
@@ -796,7 +796,7 @@ NL조인과 블록 NL조인의 가장 큰 차이는 조인 버퍼(join_buffer_si
 
 조인은 드라이빙 테이블에서 일치하는 레코드의 건수만큼 드리븐 테이블을 검색하면서 처리된다. 드라이빙 테이블은 한 번에 쭉 읽지만, 드리븐 테이블은 여러 번 읽는다는 것을 의미한다.  
 
-드라이빙 테이블에 일치하는 레코드가 1000건 이었는데, 드리븐 테이블의 조인 조건이 인덱스를 이용할 수 없다면 드리븐 테이브렝서 연결되는 레코드를 찾기 위해 1000번의 풀 테이블 스캔을 해야한다. (쿼리가 매우 느림)  
+드라이빙 테이블에 일치하는 레코드가 1000건 이었는데, 드리븐 테이블의 조인 조건이 인덱스를 이용할 수 없다면 드리븐 테이블에서 연결되는 레코드를 찾기 위해 1000번의 풀 테이블 스캔을 해야한다. (쿼리가 매우 느림)  
 
 어떤 방식으로도 드리븐 테이블의 풀 테이블 스캔이나 인덱스 풀 스캔을 피할 수 없다면 옵티마이저는 드라이빙 테이블에서 읽은 레코드를 메모리에 캐시한 후 드리븐 테이블과 이 메모리 캐시를 조인하는 형태로 처리한다.  
 이 때 사용되는 메모리의 캐시를 조인 버퍼(join buffer)라고 하며, `join_buffer_size` 시스템 변수로 크기를 제한할 수 있고 조인이 완료되면 조인 버퍼는 바로 해제된다.  
@@ -817,7 +817,7 @@ WHERE de.from_date > '1995-01-01' AND e.emp_no < 109004
 3. employees 테이블의 프라이머리 키를 이용해 `emp_no < 109004` 조건을 만족하는 레코드를 검색한다. 
 4. 3번에서 검색된 결과(employees)에 2번의 캐시된 조인 버퍼의 레코드(dept_emp)를 결합해서 반환한다.  
 
-![join-buffer-bnljoin](https://oopy.lazyrockets.com/api/v2/notion/image?src=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2F56a41f4f-c727-48f9-890e-0709f9f564c2%2FUntitled.png&blockId=1a27fc4e-96f8-445b-8dd6-5581adf3bd9d)  
+![join-buffer-bnljoin](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FDdk8y%2FbtrYvmpF1qM%2FEtGL9EveD5z6NmkAv06Sgk%2Fimg.png)  
 
 <br/>
 
@@ -853,7 +853,7 @@ SELECT * FROM employees WHERE last_name='Action' AND first_name LIKE '%sal';
 
 #### 인덱스 컨디션 푸시다운이 작동하지 않을 때  
 
-![index-condition-pushdown](https://oopy.lazyrockets.com/api/v2/notion/image?src=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fcd6f0575-fd18-4435-bd91-93e99573e125%2FUntitled.png&blockId=c24aa25c-fbda-426d-891a-8571c8897b1b)  
+![index-condition-pushdown](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbcGKH0%2FbtrYqy6mkp4%2FuLGJ1zhfrZuL31FxN9yWY0%2Fimg.png)  
 
 그림은 `last_name` 조건으로 인덱스 레인지 스캔을 하고 테이블의 레코드를 읽은 후 `first_name LIKE '%sal'` 조건에 부합되는지 여부를 비교하는 과정이다.  
 실제 테이블을 읽어서 3건의 레코드를 가져왔지만 그중 단 1건만 `first_name LIKE '%sal'` 조건에 일치했다. 이는 `last_name` 조건에 일치하는 레코드가 많아질수록 불필요한 작업이 커질 것이다.  
@@ -1010,6 +1010,8 @@ SELECT * FROM employees WHERE first_name = 'Matt'; -- 1
 SELECT * FROM employees WHERE hire_date = '1987-03-31'; --2
 ```
 
+![index-merge-union](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FvbJfb%2FbtrYydOUO5X%2F9B1uErtN2mKYKp3JIo4EqK%2Fimg.png)
+
 MySQL에서 세컨더리 인덱스는 자동으로 PK를 포함하기 때문에, 두 조건을 분리해서 각각 실행하면 두 인덱스 검색을 통한 결과가 PK로 정렬돼 있음을 알 수 있다.  
 MySQL 서버는 두 집합에서 하나씩 가쟈와서 서로 비교하면서 PK인 emp_no 컬럼의 값이 중복된 레코드들을 정렬 없이 걸러낼 수 있는 것이다.  
 이렇게 두 집합의 결과를 하나씩 가져와 중복 제거를 수행할 때 사용된 알고리즘을 우선 순위 큐(Priority Queue)라고 한다.  
@@ -1136,7 +1138,7 @@ AND e.emp_no IN (
 <br/>
 
 FirstMatch 최적화 작동 방식  
-![first-match](https://oopy.lazyrockets.com/api/v2/notion/image?src=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fb393dda9-08d2-410f-b2a7-2ab6fbc3e983%2FUntitled.png&blockId=60d21318-ef1f-4be8-be09-42fc5a6e795e)  
+![first-match](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcqbxcB%2FbtrYIcI0leE%2FZGYXd4vXjQjTAIShmp0J00%2Fimg.png)  
 
 <br/>
 
@@ -1184,7 +1186,7 @@ dept_emp 테이블에는 인덱스가 (dept_no, emp_no) 조합으로 PK 인덱�
 PK는 전체 레코드 수는 33만 건 정도 있지만 dept_no만으로 그루핑해서 보면 9건 밖에 없다는 것을 알 수 있다.  
 그래서 dept_emp 테이블에서 PK를 루스 인덱스 스캔으로 유니크한 dept_no만 읽으면 효율적으로 서브쿼리 부분을 실행할 수 있다.  
 
-![loose-scan](https://oopy.lazyrockets.com/api/v2/notion/image?src=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2F0f98d443-7af3-4c7b-bb60-7135f53c6f28%2FUntitled.png&blockId=6c90bd26-833b-45a7-af85-7f22eca87d74)  
+![loose-scan](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FDX40q%2FbtrYJRX30fi%2Fj3IgWVhPJ46qwkJPyvRgak%2Fimg.png)  
 
 그림에서 서브쿼리에 사용된 dept_emp 테이블이 드라이빙 테이블로 실행되며, dept_emp 테이블의 PK를 dept_no 부분에서 유니크하게 한 건씩 읽고 있다는 것을 보여준다.  
 쿼리 실행 계획을 보면 id가 1이므로 내부적으로 조인 처리됐으며 Extra 컬럼에 LooseScan가 표시된 것을 확인할 수 있다.  
@@ -1312,6 +1314,7 @@ EXPLAIN
 SELECT * FROM employees e
 JOIN salaries s ON s.emp_no = e.emp_no
 WHERE e.first_name = 'Matt'
+AND e.hire_date BETWEEN '1985-11-21' AND '1986-11-21';
 ```
 
 <br/>
@@ -1330,7 +1333,7 @@ WHERE e.first_name = 'Matt'
 
 활성화 후 조회한 실행 계획에서도 rows 컬럼의 값은 233건으로 동일하지만 filtered 컬럼의 값이 100%가 아니라 23.2%로 변경됐다.  
 `condition_fanout_filter`가 활성화 되면서 옵티마이저는 인덱스를 사용할 수 있는 first_name 컬럼 조건 이외의 나머지 조건 (hire_date 컬럼의 조건)에 대해서도 얼마나 조건을 충족할 수 있는지 고려했다는 뜻이다.  
-즉, `condition_fanout_filter` 최적화가 비활성화된 경우에는 employees 텡비ㅡㄹ에서 모든 조건을 충족하는 레코드가 233건일 것으로 예측한 반면, 활성화된 경우 54건(233 * 0.2320)만 조건을 충족할 것이라고 예측했다.  
+즉, `condition_fanout_filter` 최적화가 비활성화된 경우에는 employees 테이블에서 모든 조건을 충족하는 레코드가 233건일 것으로 예측한 반면, 활성화된 경우 54건(233 * 0.2320)만 조건을 충족할 것이라고 예측했다.  
 옵티마이저가 조건을 만족하는 레코드 건수를 정확하게 예측할 수 있다면 더 빠른 실행 계획을 만들어낼 수 있는 것이다.  
 
 `condition_fanout_filter` 최적화는 다음 조건을 만족하는 컬럼에 조건드렝 대해 조건을 만족하는 레코드 비율을 계산할 수 있다.  
@@ -1344,3 +1347,770 @@ WHERE e.first_name = 'Matt'
 그에 따라 쿼리의 실행 계획 수립에 더 많은 시간과 컴퓨팅 자원을 사용하게 된다.  
 8.0 이전 버전에서 업그레이드 할 때 서버가 처리하는 쿼리의 빈도가 매우 높다면 실행 계획 수립에 추가되는 오버헤드가 크게 보일 수 있으므로 업그레이드 전 성능 테스트를 진행하는 것이 좋다.  
 
+<br/>
+<br/>
+
+### 파생 테이블 머지(derived_merge)
+
+예전 버전의 서버에서는 FROM 절에 사용된 서브쿼리는 먼저 실행해서 그 결과를 임시 테이블로 만든 후 외부 쿼리 부분을 처리했다.  
+
+```sql
+EXPLAIN
+SELECT * FROM (
+	SELECT * FROM employees e
+	WHERE e.first_name = 'Matt'
+) derived_table
+WHERE derived_table.hire_date = '1986-04-03';
+```
+
+MySQL 서버에서는 FROM 절에 사용된 서브쿼리를 파생 테이블(Derived Table)이라고 부른다.  
+이 경우 서버는 FROM 절의 서브쿼리로 실행하는 레코드를 읽어서 임시 테이블을 생성하고 INSERT 한다. 그리고 다시 임시 테이블을 읽으므로 MySQL 서버는 레코드를 복사하고 읽는 오버헤드가 추가된다.  
+내부적으로 생성되는 임시 테이블은 처음에는 메모리에 생성되지만, 임시 테이블에 저장될 레코드 건수가 많아지면 결국 디스크로 다시 기록돼야 한다.  
+
+<br/>
+
+5.7 버전부터는 파생 테이블로 만들어지는 서브쿼리를 외부 쿼리와 병합해서 서브쿼리 부분을 제거하는 최적화가 도입됐는데, derived_merge 최적화 옵션은 이런 임시 테이블 최적화를 활성화할지 여부를 결정한다.  
+
+실행 계획을 확인하면 서브쿼리 없이 employees 테이블을 조회하던 형태의 단순 실행 계획이 보인다.  
+
+옵티마이저가 모든 쿼리에 대해서 서브쿼리를 외부 쿼리로 병합할 수는 없다.  
+다음 경우에는 가능하다면 서브 쿼리는 외부 쿼리로 수동으로 병합해서 작성하는 것이 쿼리의 성능 향상에 도움이 된다.  
+
+- SUM() 또는 MIN(), MAX() 같은 집계 함수와 윈도우 함수(Window Function)가 사용된 서브쿼리
+- DISTINCT가 사용된 서브쿼리
+- GROUP BY나 HAVING이 사용된 서브쿼리
+- LIMIT이 사용된 서브쿼리 
+- UNION 또는 UNION ALL을 포함하는 서브쿼리
+- SELECT 절에 사용된 서브쿼리
+- 값이 변경되는 사용자 변수가 사용된 서브쿼리
+
+<br/>
+<br/>
+
+### 인비저블 인덱스(use_invisible_indexes)
+
+8.0 이전까지는 인덱스가 존재하면 항상 옵티마이저가 실행 계획을 수립할 때 해당 인덱스를 검토하고 사용했다.
+8.0 버전부터는 인덱스의 가용 상태를 제어할 수 있는 기능이 추가됐다.  
+이제 인덱스를 삭제하지 않고, 해당 인덱스를 사용하지 못하게 제어하는 기능을 제공한다.  
+
+```sql
+-- 인덱스의 가용 상태 변경 (인덱스 사용x)
+ALTER TABLE employees ALTER INDEX ix_hiredate INVISIBLE;
+-- 인덱스의 가용 상태 변경 (인덱스 사용ㅐ)
+ALTER TABLE employees ALTER INDEX ix_hiredate VISIBLE;
+```
+
+use_invisible_indexes 옵티마이저 옵션을 이용하면 INVISIBLE로 설정된 인덱스라 하더라도 옵티마이저가 사용하게 제어할 수 있다.  
+기본값은 off로 INVISIBLE 상태의 인덱스는 옵티마이저가 볼 수 없는 상태다.  
+
+```sql
+SET optimizer_switch='use_invisible_indexes=on';
+```
+
+<br/>
+<br/>
+
+### 스킵 스캔(skip_scan)
+
+인덱스의 핵심은 값이 정렬돼 있다는 것이며, 이로 인해 인덱스를 구성하는 컬럼의 순서가 매우 중요하다.  
+인덱스가 (A, B, C)로 구성됐을 때 쿼리의 조건절이 B와 C 컬럼에 대한 조건이면 인덱스를 사용할 수 없다.  
+인덱스 스캡 스캔은 제한적이긴 하지만 인덱스의 이런 제약 사항을 뛰어넘을 수 있는 최적화 기법이다.  
+
+```sql
+ALTER TABLE employees ADD INDEX ix_gender_birthdate (gender, birth_date);
+
+-- 위 인덱스 사용을 위해서는 gender 컬럼에 대한 비교 조건이 필수적
+
+SELECT * FROM employees WHERE birth_date >= '1965-02-01'; -- 인덱스 사용 x
+SELECT * FROM employees WHERE gender ='M' AND birth_date >= '1965-02-01'; -- 인덱스 사용 o
+```
+
+인덱스 스캡 스캔은 인덱스의 선행 컬럼이 조건절에 사용되지 않더라도 후행 컬럼의 조건만으로 인덱스를 이용한 쿼리 성능이 개선이 가능하다.  
+위 쿼리를 실행할 때 옵티마이저는 테이블에 존재하는 모든 gender 컬럼의 값을 가져와 두 번째 쿼리와 같이 gender 컬럼의 조건이 있는 것처럼 쿼리를 최적화한다.  
+이 때 선행 컬럼의 값이 매우 다양하면 인덱스 스킵 스캔 최적화가 비효율적이기 때문에 옵티마이저는 선행 컬럼이 소수의 유니크한 값을 가질때만 인덱스 스킵 스캔 최적화를 사용한다.  
+
+```sql
+SET optimizer_switch='skip_scan=on'; -- 현재 세션에서 활성화
+SET optimizer_switch='skip_scan=off'; -- 현재 세션에서 비활성화
+
+-- 특정 테이블에 대해 인덱스 스킵 스캔을 사용하도록 힌트 적용
+SELECT /*+ SKIP_SCAN(employees) */ COUNT(*)
+FROM employees WHERE birth_date >= '1965-02-01';
+-- 특정 테이블과 인덱스에 대해 인덱스 스킵 스캔을 사용하도록 힌트 적용
+SELECT /*+ SKIP_SCAN(employees ix_gender_birthdate) */ COUNT(*)
+FROM employees WHERE birth_date >= '1965-02-01';
+-- 특정 테이블에 대해 인덱스 스킵 스캔을 사용하지 않도록 힌트 적용
+SELECT /*+ NO_SKIP_SCAN(employees) */ COUNT(*)
+FROM employees WHERE birth_date >= '1965-02-01';
+```
+
+<br/>
+<br/>
+
+### 해시조인(hash_join)
+
+8.0.18 버전부터 해시 조인이 지원되기 시작했다.  
+
+해시 조인을 기대하는 이유는 NL 조인보다 해시 조인이 빠르다고 생각하기 때문인데 항상 옳인 이야기는 아니다.  
+
+![nl-hash-diff](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FQbqa7%2FbtrYIUA4Jz1%2FK70wHywfoNxeVA3oG0fhoK%2Fimg.png)  
+화살표는 전체 쿼리의 실행 시간을 의미한다.  
+
+<br/>
+
+NL 조인과 해시 조인은 똑같은 지점에서 시작했지만 해시 조인이 먼저 끝난 것을 볼 수 있다.  
+A 지점은 쿼리가 실행되면서 MySQL 서버가 첫 번째 레코드를 찾아낸 시점이며, B 지점은 마지막 레코드를 찾아낸 시점을 의미한다.  
+실제로 마지막 레코드를 찾았다고 해서 항상 쿼리가 완료되는 것은 아니다.
+
+해시 조인은 첫 번째 레코드를 찾는 데는 시간이 많이 걸리지만 최종 레코드를 찾는 데까지는 많이 걸리지 않음을 알 수 있다.  
+NL 조인은 마지막 레코드를 찾는 데까지는 시간이 많이 걸리지만 첫 번째 레코드를 찾는 것은 상대적으로 훨씬 빠르다는 것을 알 수 있다.  
+해시 조인은 최고 스루풋(Best Throughput) 전략에 적합하며, NL 조인은 최고 응답 속도(Best-Response-time) 전략에 적합하다는 것을 알 수 있다.  
+일반적인 웹 서비스는 온라인 트랜잭션(OLTP) 서비스이기 때문에 스루풋도 중요하지만 응답 속도가 더 중요하고, 분석과 같은 서비스는 전체적인 처리 소요 시간이 중요하기 때문에 전체 스루풋이 더 중요하다.  
+
+MySQL 서버는 범용(OLTP 처리를 위한 데이터베이스 서버) RDBMS이다. 아마 대용량 데이터 분석을 위해서 MySQL 서버를 사용하지는 않을 것이다.  
+이 관점으로 보면 MySQL 서버가 응답속도와 스르풋 중 어디에 집중해서 최적화할 것인지 명확해진다. 서버는 주로 조인 조건의 컬럼이 인덱스가 없다거나 조인 대상 테이블 중 일부의 레코드 건수가 매우 적은 경우 등에 대해서만 해시 조인 알고리즘을 사용하도록 설계되어 있다.  
+즉, 해시 조인 최적화는 NL 조인이 사용되기에 적합하지 않은 경우를 위한 차선책(Fallback stategy) 같은 기능으로 생각하는 것이 좋다.  
+
+MySQL 서버는 8.0.20 버전부터 조인조건이 좋지 않은 경우 NL조인을 블록 NL 조인으로 최적화하던것을 해시 조인으로 최적화하도록 변경됐다.  
+optimizer_switch 설정의 블록 NL 조인 관련(BNL) 변수는 해시 조인을 유도하는 목적으로 사용된다.  
+
+```sql
+-- IGNORE INDEX는 NL 조인이 사용되지 못하게 하기 위해 사용
+-- EXPLAIN ANALYSE, EXMPLAIN FORMAT=TREE 명령 빌드 테이블, 프로브 테이블 식별 가능
+EXPLAIN
+SELECT * FROM employees e IGNORE INDEX (PRIMARY, ix_hiredate)
+JOIN dept_emp de IGNORE INDEX (ix_empno_fromdate, ix_fromdate)
+ON de.emp_no = e.emp_no AND de.from_date = e.hire_date;
+```
+
+일반적으로 해시 조인은 빌드 단계(Build-phase)와 프로브 단계(Probe-phase)로 나뉘어 처리된다.  
+
+#### 빌드 단계  
+
+조인 대상 테이블 중에서 레코드 건수가 적어서 해시 테이블로 만들기에 용이한 테이블을 골라서 메모리에 해시 테이블을 생성(빌드)하는 작업을 수행한다.  
+빌드 단계에서 해시 테이블을 만들 때 사용되는 원본 테이블을 빌드 테이블이라고 한다.  
+
+#### 프로브 단계  
+
+나머지 테이블의 레코드를 읽어서 해시 테이블의 일치 레코드를 찾는 과정을 의미한다. 이 때 읽는 나머지 테이블을 프로브 테이블이라고도 한다.  
+
+<br/>
+
+Tree 포맷의 실행 계획을 보면 최하단의 제일 안쪽(들여쓰기가 가장 많이 된)의  테이블이 빌드 테이블로 선정된 것이다.  
+옵티마이저는 해시 조인을 위해 빌드 테이블인 dept_emp 테이블의 레코드를 읽어서 메모리에 해시 테이블을 생성했고, 프로브 테이블로 선택된 employees 테이블을 스캔하면서 메모리에 생성된 해시 테이블에서 레코드를 찾아서 결과를 사용자에게 반환한 것이다.  
+
+![hash-join-all-processing](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcTw5AI%2FbtrYG72d8iy%2FaQKPoCxBQlKyzZeWfFgwr1%2Fimg.png)  
+해시 조인(메모리에서 모두 처리 가능한 경우)  
+
+<br/>
+
+해시 테이블을 메모리에 저장할 때 join_buffer_size 시스템 변수로 크기를 제어할 수 있는 조인 버퍼를 사용한다. (기본 256KB)  
+레코드 건수가 많아 조인 버퍼의 공간이 부족하면, 서버는 빌드 테이블과 프로브 테이블을 적당한 크기(하나의 청크가 조인 버퍼보다 작도록)의 청크로 분리한 다음, 청크별로 위의 그림의 방식으로 해시조인 처리한다.  
+
+<br/>
+
+![hash-join-first-processing](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbgLXQ8%2FbtrYIpBibP2%2FKl8gMpMAR51N6DOWvLmE50%2Fimg.png)  
+해시 조인 1차 처리(해시 테이블이 조인 버퍼 메모리보다 큰 경우)  
+
+<br/>
+
+만들어질 해시 테이블이 설정된 메모리 크기(join_buffer_size)보다 큰지를 알 수 없다면, 서버는 dept_emp 테이블을 읽으면서 메모리의 해시 테이블을 준비하다가 지정된 메모리 크기를 넘어서면 dept_emp 테이블으; 나머지 레코드를 디스크에 청크로 구분해서 저장한다. (그림의 1, 2 과정)  
+그리고 서버는 employees 테이블의 emp_no 값을 이용해 메모리의 해시 테이블을 검색해서 1차 조인 결과를 생성하며 동시에 employees 테이블에서 읽은 레코드를 디스크에 청크로 구분해서 저장한다.  
+**빌드 테이블 청크**는 dept_emp 테이블의 레코드를 저장해둔 공간이고, **프로브 테이블 청크**는 employees 테이블의 레코드들을 저장해둔 공간이다.  
+
+<br/>
+
+![hash-join-second-processing](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbSTyqw%2FbtrYMXQNht6%2Fkr2bDKaZJ3cAstlDKsFzak%2Fimg.png)  
+해시 조인 2차 처리(해시 테이블이 조인 버퍼 메모리보다 큰 경우)  
+
+<br/>
+
+1차 조인이 완료되면 그림의 1번처럼 서버는 디스크에 저장된 빌드 테이블 청크에서 첫 번째 청크를 다시 읽어서 다시 메모리 해시 테이블을 구축한다.  
+그리고 2번처럼 프로브 테이블 청크에서 첫 번째 청크를 읽으면서 새로 구축된 메모리 해시 테이블과 조인을 수행해 2차 결과를 가져온다.  
+그림은 첫 번째 청크만 보여주지만 실제론 디스크에 저장된 청크 개수만큼 이 과정을 반복 처리해서 완성된 조인 결과를 만들어낸다.  
+이렇게 청크 단위로 조인을 수행하기 위해 서버는 2차 해시 함수를 이용해 빌드 테이블과 프로브 테이블을 동일 개수의 청크로 쪼개어 디스크로 저장한다.  
+
+옵티마이저는 빌드 테이블의 크기에 따라 해시조인(메모리에서 모두 처리 가능한 경우)은 클래식 해시 조인(Classic hash join) 알고리즘을 사용하고, 해시 조인 1차 처리의 경우 그레이스 해시 조인(Grace hash join)알고리즘을 하이브리드 하게 활용하도록 구현돼 있다.  
+알고리즘은 xxHash64 해시 함수를 사용한다.  
+
+<br/>
+<br/>
+
+### 인덱스 정렬 선호(prefer_ordering_index)
+
+옵티마이저는 ORDER BY 또는 GROUP BY 인덱스를 사용해 처리 가능한 경우 쿼리의 실행 계획에서 이 인덱스의 가중치를 높이 설정해서 실행된다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees
+WHERE hire_date BETWEEN '1985-01-01' AND '1985-02-01'
+ORDER BY emp_no;
+```
+
+위 쿼리는 다음 2가지 실행 계획을 선택할 수 있다.  
+
+1. ix_hiredate 인덱스를 이용해 `hire_date BETWEEN '1985-01-01' AND '1985-02-01'` 조건에 일치하는 레코드를 찾은 다음, emp_no로 정렬해서 결과를 반환 
+2. employees 테이블의 PK가 emp_no이므로 PK를 정순으로 읽으면서 hire_date 컬럼의 조건에 일치하는지 비교 후 결과를 반환  
+
+<br/>
+
+hire_date 컬럼의 조건에 부합되는 레코드 건수가 많지 않다면 1번이 효율적일 것 이다.  
+
+실행 계획에서는 PK를 풀스캔 하면서 hire_date 컬럼의 값이 1985년 1월인 건만 필터링하도록 쿼리를 처리하고 있다. 이렇게 체크해야 하는 레코드 건수가 많음에도 불구하고 정렬된 인덱스 활용으로 실행 계획이 수립되지 않은 것은 옵티마이저가 실수로 잘못된 실행 꼐획을 선택한 것일 가능성이 높다. (가끔 실수를 함)  
+
+8.0.20 버전까지는 `IGNORE INDEX`로 특정 인덱스를 사용하지 못하도록 했지만, 8.0.21 버전부터는 옵티마이저가 ORDER BY를 위한 인덱스에 너무 가중치를 부여하지 않도록 prefer_ordering_index 옵티마이저 옵션이 추가됐다.  
+옵션값은 기본 ON으로 설정돼 있지만 옵티마이저가 자주 실수를 한다면 OFF로 변경하면 된다.  
+```sql
+SET SESSION optimizer_switch='prefer_ordering_index=OFF';
+
+SELECT /*+ SET_VAR(optimizer_switch='prefer_ordering_index=OFF') */ *
+FROM ...
+```
+
+<br/>
+<br/>
+
+### 조인 최적화 알고리즘
+
+MySQL에는 조인 최적화는 많이 개선됐지만, 테이블 개수가 많아지면 최적화된 실행 계획을 찾는 것이 상당히 어려워지고, 하나의 쿼리에서 조인되는 테이블의 개수가 많아지면 실행 계획을 수립하는 데만 몇 분이 걸릴 수도 있다.  
+
+MySQL에는 조인 쿼리의 실행 계획 최적화를 위한 알고리즘이 2개 있다.  
+4개 테이블을 조인하는 쿼리 문장이 조인 옵티마이저 알고리즘에 따른 처리를 확인한다.  
+
+<br/>
+<br/>
+
+```sql
+SELECT * 
+FROM t1 JOIN t2 ON ... JOIN t3 ON ... JOIN t4 ON ... WHERE ...
+```
+
+### Exhaustive 검색 알고리즘
+
+![Exhaustive-algorithm](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FeolJzc%2FbtrYToWjcAa%2FHNoflQ6XN7RKR3VnANilcK%2Fimg.png)  
+
+<br/>
+
+Exhaustive 검색 알고리즘은 5.0 이전 버전에서 사용되던 조인 최적화 기법으로, FROM 절에 명시된 모든 테이블의 조합에 대해 실행 계획의 비용을 계산해서 최적의 조합 1개를 찾는 방법이다.  
+이 알고리즘에서 테이블 개수당 가능 조인 조합은 Table!(Factorial) 이된다.  
+Exhaustive 검색 알고리즘에서 테이블이 10개만 넘어도 실행 계획을 수림하는데 몇 분이 걸린다.  
+
+<br/>
+<br/>
+
+### Greedy 검색 알고리즘
+
+![Greedy-algorithm](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FcRKXxe%2FbtrYXjsUf2d%2FCgKVbQx17QKUfklp5k5Ckk%2Fimg.png)  
+
+Greedy 검색 알고리즘은 Exhaustive 검색 알고리즘의 시간 소모적인 문제점을 해결하기 위해 5.0부터 도입된 조인 최적화 기법이다.  
+그림은 테이블(t1~t4)이 Greedy 검색 알고리즘으로 처리될 때(optimizer_search_depth값은 2로 가정) 최적의 조인 순서를 검색하는 방법을 보여준다.  
+
+1. 전체 N개의 테이블 중에서 optimizer_search_depth 시스템 설정 변수에 정의된 개수의 테이블로 가능한 조인 조합을 생성 
+2. 1번에서 생성된 조인 조합 중에서 최소 비용의 실행 계획 하나를 선정
+3. 2번에서 전정된 실행 꼐획의 첫 번째 테이블을 "부분 실행 계획(그림의 실행 계획 완료 대상)"의 첫 번째 테이블로 선정
+4. 전체 N-1개의 테이블 중(3번에서 선택된 테이블 제외)에서 optimizer_search_depth 시스템 설정 변수에 정의된 개수의 테이블로 가능한 조인 조합을 생성
+5. 4번에서 생성된 조인 조합들을 하나씩 3번에서 생성된 "부분 실행 계획"에 대입해 실행 비용을 계산 
+6. 5번의 비용 계산 결과, 최적의 실행 계확애소 두 번째 테이블을 3번에서 생성된 "부분 실행 계획"의 두 번째 테이블로 선정 
+7. 남은 테이블이 모두 없어질 때까지 4~6번까지의 과정을 반복 실행하면서 "부분 실행 계획"에 테이블의 조인 순서를 기록
+8. 최종적으로 "부분 실행 계획"이 테이블의 조인 순서로 결정됨  
+
+<br/>
+
+Greedy 검색 알고리즘은 optimizer_search_depth 시스템 변수에 설정된 값에 따라 조인 최적화의 비용이 줄어들 수 있다. (기본값 62)
+
+MySQL에서는 조인 최적화를 위한 시스템 변수로 optimizer_prune_lovel과 optimizer_search_depth가 제공된다.  
+
+#### optimizer_search_depth 시스템 변수  
+
+Greedy검색 알고리즘과 Exhaustive 검색 알고리즘 중에서 어떤 알고리즘을 사용할지 결정하는 시스템 변수다.  
+0~62 정수값을 설정할 수 있는데 1~62는 검색 대상을 지정된 개수로 한정해서 최적의 실행 계획을 산출하고, 0은 최적의 검색 테이블 개수를 옵티마이저가 자동으로 결정한다.  
+조인에 사용된 테이블 개수가 optimizer_search_depth 설정값보다 크면 optimizer_search_depth 만큼 Exhaustive 검색이 사용되고, 나머지 테이블은 Greedy 검색이 사용된다.  
+조인에 사용된 테이블 개수가 optimizer_search_depth 설정 값보다 작다면 Exhaustive 검색만 사용된다.  
+
+<br/>
+
+#### optimizer_prune_level 시스템 변수
+5.0 버전부터 추가된 Heuristic 검색이 작동하는 방식을 제어한다.  
+우리가 Exhaustive 검색 알고리즘과 Greedy 검색 알고리즘 중에서 어떤 알고리즘을 사용하더라도 옵티마이저는 여러 테이블의 조인 순서를 결정하기 위해 많은 조인 경로를 비교한다.  
+Heuristic 검색의 가장 핵심 내용은 다양한 조인 순서의 비용을 계산하는 도중 이미 계산했던 조인 순서의 비용보다 큰 경우에는 언제든지 중간에 포기할 수 있다는 것이다.  
+optimizer_prune_level 값이 1이면 Heuristic 검색을 사용한다. (0으로 설정을 가능하면 하지 말 것)  
+
+<br/>
+
+8.0 버전의 조인 최적화는 많이 개선돼 optimizer_search_depth 변수의 값에는 크게 영향받지 않지만, optimizer_prune_level을 0으로 설정하면 optimizer_search_depth 값 변화에 실행 계획 수립 시간이 급증하는 것을 확인할 수 있다.  
+
+<br/>
+<br/>
+
+## 쿼리 힌트
+
+버전이 업그레이드 되며 옵티마이저의 최적화 방법들도 업그레이드 됐지만 MySQL 서버는 우리가 서비스하는 비즈니스를 100% 이해하지는 못한다.  
+그래서 개발자나 DBA보다 MySQL 서버가 부족한 실행 계획을 수립하기 위해 옵티마이저 힌트를 제공한다.  
+
+MySQL 서버에서 사용 가능한 쿼리 힌트는 인덱스 힌트, 옵티마이저 힌트로 구분된다.  
+
+<br/>
+<br/>
+
+### 인덱스 힌트
+
+"STRAIGHT_JOIN", "USE INDEX"를 포함한 인덱스 힌트들은 모두 MySQL 서버에 옵티마이저 힌트가 도입되기 전에 사용되던 기능들이다.  
+이들은 모두 SQL 문법에 맞게 사용해야 하기 때문에 사용하게 되면 ANSI-SQL 표준 문법을 준수하지 못하게 되는 단점이 있다.  
+5.6부터 추가되기 시작한 옵티마이저 힌트들은 모두 MySQL 서버를 제외한 다른 RDBMS에서는 주석으로 해석하기 때문에 ANSI-SQL 표준을 준수한다고 볼 수 있다. 가능한 인덱스 힌트(SELECT ,UPDATE에서만 가능)보단 옵티마이저 힌트를 이용하는 것이 좋다.
+
+<br/>
+<br/>
+
+### STRAIGHT_JOIN
+
+STRAIGHT_JOIN은 옵티마이저 힌트인 동시에 조인 키워드이기도 하다.  
+SELECT, UPDATEm DELETE 쿼리에서 여러 개의 테이블이 조인되는 경우 조인 순서를 고정하는 역할을 한다.  
+
+```sql
+-- 3개 테이블을 조인하지만 어느 테이블이 드라이빙 테이블이고 어느 테이블이 드리븐 테이블인지 알 수 없다.
+-- 그때그때 각 테이블의 통계 정보와 쿼리의 조건을 기반으로 가장 최적이라고 판단되는 순서로 조인한다. 
+EXPLAIN 
+SELECT * FROM employees e, dept_emp de, departments d
+WHERE e.emp_no = de.emp_no AND d.dept_no = de.dept_no;
+```
+
+일반적으로 조인을 하기 위한 컬럼들의 인덱스 여부로 조인의 순서가 결정되며, 조인 컬럼의 인덱스에 아무런 문제가 없는 경우에는(WHERE 조건이 있는 경우 WHERE 조건을 만족하는) 레코드가 적은 테이블을 드라이빙으로 선택한다.  
+이 쿼리는 departments 테이블이 레코드 건수가 가장 적어서 드라이빙으로 선택됐을 것으로 보인다.  
+
+이 쿼리의 조인 순서를 변경하려는 경우에는 STARIGHT_JOIN 힌트를 사용할 수 있다. 두 예제 모두 STRAIGHT_JOIN 키워드가 SELECT 키워드 뒤에 사용됐다는 것에 주의하자.  
+
+```sql
+EXPLAIN STRAIGHT_JOIN
+SELECT * FROM employees e, dept_emp de, departments d
+WHERE e.emp_no = de.emp_no AND d.dept_no = de.dept_no;
+
+EXPLAIN /*! STRAIGHT_JOIN */
+SELECT * FROM employees e, dept_emp de, departments d
+WHERE e.emp_no = de.emp_no AND d.dept_no = de.dept_no;
+```
+
+STRAIGHT_JOIN 힌트는 옵티마이저가 FROM 절에 명시된 테이블의 순서대로 조인을 수행하도록 유도한다.  
+
+다음 기준에 맞게 조인 순서가 결정되지 않을 때만 사용하자.  
+
+#### 임시 테이블(인라인 뷰 또는 파생된 테이블)과 일반 테이블의 조인  
+
+이 경우에는 일반적으로 임시 테이블을 드라이빙 테이블로 선정하는 것이 좋다.  
+일반 테이블의 조인 컬럼에 인덱스가 없는 경우에는 레코드 건수가 작은 쪽을 먼저 읽도록 드라이빙으로 선택하는 것이 좋은데, 대부분 옵티마이저가 제대로 선택한다. 성능 저하가 심각할 때 사용하자.  
+
+<br/>
+
+#### 임시 테이블끼리 조인  
+
+임시 테이블은 항상 인덱스가 없기 때문에 어느 테이블을 먼저 드라이빙으로 읽어도 무관하므로 크기가 작은 테이블을 드라이빙으로 선택해주는 것이 좋다.  
+
+<br/>
+
+#### 일반 테이블끼리 조인  
+
+양쪽 테이블 모두 조인 컬럼에 인덱스가 있거나 없는 경우에는 레코드 건수가 적은 테이블을 드라이빙으로 선택해주는 것이 좋으며, 그 외의 경우에는 조인 컬럼에 인덱스가 없는 테이블을 드라이빙으로 선택하는 것이 좋다.  
+
+<br/>
+
+언급되는 레코드 건수는 인덱스를 사용할 수 있는 WHERE 조건까지 포함해서 그 조건을 만족하는 레코드 건수다.  
+
+JOIN_FIXED_ORDER 옵티마이저 힌트는 STRAIGHT_JOIN 힌트와 동일한 효과를 낸다.  
+JOIN_ORDER, JOIN_PREFIX, JOIN_SUFFIX는 일부 테이블의 조인 순서에 대해서만 제인하는 힌트다.  
+
+<br/>
+<br/>
+
+### USE INDEX / FORCE INDEX / IGNORE INDEX
+
+인덱스 힌트는 STRAIGHT_JOIN 힌트와는 달리 사용하려는 인덱스를 가지는 테이블 뒤에 힌트를 명시해야 한다.  
+3~4개 이상의 컬럼을 포함하는 비슷한 인덱스가 여러개 존재 시 옵티마이저가 가끔 실수를 하는데 그때 강제로 특정 인덱스를 사용하도록 힌트를 사용한다.  
+
+3종류 인덱스 힌트 모두 키워드 뒤에 사용할 인덱스 이름을 괄호로 묶어서 사용하며, 별도로 사용자가 부여한 이름이 없는 PK는 "PRIMARY"라고 명시하면 된다.  
+
+<br/>
+
+#### USE INDEX  
+
+MySQL 옵티마이저에게 특정 테이블의 인덱스를 사용하도록 권장하는 힌트정도로 생각하면 된다. 힌트가 주어지면 항상 그 인덱스를 사용하는 것은 아니다.  
+
+<br/>
+
+#### FORCE INDEX  
+
+USE INDEX와 다른 점은 없으며, USE 인덱스보다 옵티마이저에게 미치는 영향이 더 강한 힌트로 생각하면 된다.  
+USE 인덱스도 충분히 영향력이 커서 잘 사용할 필요가 없다.  
+
+<br/>
+
+#### IGNORE INDEX  
+
+특정 인덱스를 사용하지 못하게 하는 용도로 사용하는 힌트다. 풀 테이블 스캔을 유도할 때 사용할 수도 있다.  
+
+<br/>
+
+위의 인덱스 힌트는 모두 용도를 명시할 수 있다. 용도는 선택 사항으로 명시되지 않으면 주어진 인덱스를 3가지 용도로 사용한다.  
+
+- USE INDEX FOR JOIN: 테이블 간의 조인뿐만 아니라 레코드를 검색하기 위한 용도까지 포함하는 용어다. 서버에서는 하나의 테이블로부터 데이터를 검색하는 작업도 JOIN이라고 표현해서 JOIN이 붙었다. 
+- USE INDEX FOR ORDER BY: 명시된 인덱스를 OREDR BY 용도로만 사용할 수 있게 제한한다.  
+- USE INDEX GROUP BY: 명시된 인덱스를 GROUP BY 용도로만 사용할 수 있게 제한한다.  
+
+<br/>
+
+대부분 옵티마이저가 최적으로 선택하기 때문에 용도까지는 고려하지 않아도 된다.  
+
+```sql
+-- 예제
+SELECT * FROM employees WHERE emp_no = 10001;
+SELECT * FROM employees FORCE INDEX(primary) WHERE emp_no = 10001;
+SELECT * FROM employees USE INDEX(primary) WHERE emp_no = 10001;
+
+SELECT * FROM employees IGNORE INDEX(primary) WHERE emp_no = 10001;
+SELECT * FROM employees FORCE INDEX(ix_firstname) WHERE emp_no = 10001;
+```
+
+전문 검색(Full Text search) 인덱스가 있는 경우에는 옵티마이저는 다른 일반 보조 인덱스(B-Tree 인덱스)를 사용할 수 있는 상황이라고 하더라도 전문 검색 인덱스를 선택하는 경우가 많다.  
+옵티마이저는 PK나 전문 검색 인덱스와 같은 인덱스에 대해서는 선택시 가중치를 두고 실행 계획을 선택하기 때문이다.  
+
+인덱스의 사용법이나 좋은 실행 계획이 어떤 것인지 판단하기 힘든 상황이라면 힌트를 사용해 강제로 옵티마이저의 실행 계획에 영향을 미치는 것은 피하는 것이 좋다.  
+지금 PK로 사용하는 것이 좋은 계획이어도 내일은 달라질 수 있기 때문에 가능하다면 그때그때 옵티마이저가 당시 통계정보를 가지고 선택하게 하는 것이 좋다.  
+
+<br/>
+<br/>
+
+### SQL_CALC_FOUND_ROWS
+
+MySQL의 LIMIT을 사용하는 경우, 조건을 만족하는 레코드가 LIMIT에 명시된 수보다 많다고 하더라도 명시된 수만큼 만족하는 레코드를 찾으면 즉시 검색 작업을 멈춘다.  
+SQL_CALC_FOUND_ROWS 힌트가 포함된 쿼리의 경우에는 LIMIT을 만족하는 수만큼 레코드를 찾았다고 하더라도 끝까지 검색을 수행한다.  
+SQL_CALC_FOUND_ROWS가 사용된 쿼리가 실행된 경우 FOUND_ROWS()라는 함스를 이용해 LIMIT을 제외한 조건을 만족하는 레코드가 전체 몇건이었는지를 알아낼 수 있다.  
+
+```sql
+-- SELECT SQL_CALC_FOUND_ROWS * FROM employees LIMIT 5;
+SELECT SQL_CALC_FOUND_ROWS * FROM employees WHERE first_name = 'Georgi' LIMIT 0, 20;
+
+SELECT FOUND_ROWS() AS total_record_count;
+```
+
+이 힌트를 사용하지 말아야 하는 이유를 확인한다.  
+
+위 쿼리에서 한 번위 쿼리 실행으로 필요한 정보 2가지를 모두 가져오는 것처럼 보이지만 FOUND_ROWS() 함수의 실행을 위해 또 한번의 쿼리가 필요하기 때문에 쿼리를 2번 실행해야 한다.  
+실제 조건을 만족하는 레코드는 253건 이다. LIMIT 조건이 처음 20건만 가져오도록 했지만 SQL_CALC_FOUND_ROWS 때문에 조건을 만족하는 레코드를 전부 읽어봐야 한다. 그래서 ix_firstname 인덱스를 통해 실제 데이터 레코드를 찾아가는 작업을 253번 실행해야 하며, 디스크 헤드가 특정 위치로 움직일 때까지 기다려야 하는 랜덤 I/O가 253번 일어난다.  
+
+전기적 처리인 메모리나 CPU의 연산 작업에 비해 기계적 처리인 디스크 작업이 얼마나 느린지를 고려하면 SQL_CALC_FOUND_ROWS를 사용하는 경우가 매우 느림을 알 수 있다.  
+SELECT 쿼리 문장이 UNION(UNION DISTINCT)으로 연결된 경우 힌트를 사용해도 FOUND_ROWS() 함수로 정확한 레코드 건수를 가져올 수 없다는 것도 문제다.  
+결론적으로 성능 향상을 위해 만들어진 힌트가 아니라 개발자 편의를 위해 만들어진 힌트지만 사용하지 않는 것이 좋다.  
+
+<br/>
+<br/>
+
+## 옵티마이저 힌트
+
+### 옵티마이저 힌트 종류  
+- 인덱스: 특정 인덱스의 이름을 사용할 수 있는 옵티마이저 힌트 
+- 테이블: 특정 테이블의 이름을 사용할 수 있는 옵티마이저 힌트
+- 쿼리 블록: 특정 쿼리 블록에 사용할 수 있는 옵티마이저 힌트로서 특정 쿼리 블록의 이름을 명시하는 것이 아니라 힌트가 명시된 쿼리 블록에 대해서만 영향을 미치는 옵티마이저 힌트
+- 글로벌(쿼리 전체): 전체 쿼리에 대해서 영향을 미치는 힌트
+
+<br/>
+
+이 구분으로 힌트의 사용 위치가 달라지는 것은 아니다. 
+힌트에 인덱스 이름이 명시될 수 있는 경우를 인덱스 수준의 힌트로 구분하고, 테이블 이름까지만 명시될 수 있는 경우를 테이블 수준의 힌트로 구분한다.  
+또한 특정 힌트는 테이블과 인덱스 이름을 모듀 명시할 수도 있지만 테이블 이름만 명시할 수도 있는데, 이 경우 인덱스와 테이블 수준의 힌트가 된다.  
+
+<br/>
+
+```sql
+-- 인덱스 수준의 힌트는 반드시 테이블명이 선행돼야 한다.
+EXPLAIN
+SELECT /*+ INDEX(employees ix_firstname) */ *
+FROM employees
+WHERE first_name = 'Matt'
+```
+
+하나의 SQL 문장에서 SELECT 키워드는 여러 번 사용될 수 있다. 이때 각 SELECT 키워드로 시작하는 서브쿼리 영역을 쿼리 블록이라고 한다.  
+특정 쿼리 블록 내에서 사용될 수도 있지만 외부 쿼리 블록에서 사용할 수도 있다.  
+특정 쿼리 블록을 외부 쿼리 블록에서 사용하려면 "QB_NAME()" 힌트를 이용해 해당 쿼리 블록에 이름을 부여해야 한다.  
+
+```sql
+-- 서브쿼리에 subq1 이름을 부여하고 쿼리블록을 힌트에 사용
+EXPLAIN
+SELECT /*+ JOIN_ORDER(e, s@subq1) */ COUNT(*)
+FROM employees e
+WHERE e.first_name = 'Matt'
+AND e.emp_no IN (
+    SELECT /*+ QB_NAME(subq1) */ s.emp_no
+    FROM salaries s
+    WHERE s.salary BETWEEN 50000 AND 50500
+);
+```
+
+예제에서 서브쿼리에 사용된 salaries 테이블이 세미 조인 최적화를 통해 조인으로 처리될 것을 예상하고 JOIN_ORDER 힌트를 사용한 것이며, 조인의 순서로 외부 쿼리 블록의 employees 테이블과 서브 쿼리 블록의 salaries 테이블을 순서대로 조인하게 힌트를 사용한 것이다.  
+이 예제같은 힌트 사용을 일반적이지는 않지만 쿼리 블록에 대한 이름 유여와 그 쿼리 블록 내부의 테이블을 외부 쿼리 불록에서 사용하기 위해서는 이처럼 사용해야 한다.  
+
+<br/>
+<br/>
+
+### MAX EXECUTION_TIME
+
+옵티마이저 힌트 중 유일하게 쿼리의 실행 계획에 영향을 미치지 않는 힌트이며, 단순히 쿼리의 최대 실행 시간을 설정하는 힌트다. 밀리초 단위의 시간을 설정하고ㅡ 쿼리가 지정 시간을 초과하면 쿼리는 실패하게 된다.  
+
+```sql
+SELECT /*+ MAX_EXECUTION_TIME(100) */ *
+FROM employees ORDER BY last_name LIMIT 1;
+```
+
+<br/>
+<br/>
+
+### SET_VAR
+
+옵티마이저 힌트뿐만 아니라 서버의 시스템 변수들 또한 쿼리의 실행 계획에 상당한 영향을 미친다.  
+조인 버퍼 크기를 지정하는 join_buffer_size 시스템 변수의 경우 쿼리에 아무런 영향을 미치지 않을 것처럼 보이지만, 옵티마이저는 조인 퍼버 공간이 충분하면 조인 버퍼를 활용하는 형태의 실행 계획을 선택할 수도 있다.  
+그뿐만 아니라 옵티마이저 힌트로 부족한 경우 optimizer_switch 시스템 변수를 제어해야 할 수도 있다. 이런 경우에는 SET_VAR를 사용하면 된다.  
+
+```sql
+EXPLAIN
+SELECT /*+ SET_VAR(optimizer_switch='index_merge_intersection=off') */ *
+FROm employees first_name = 'Georgi' AND emp_no BETWEEN 10000 AND 20000;
+```
+
+SET_VAR 힌트는 실행 계획을 바꾸는 용도 뿐만 아니라 조인 버퍼나 정렬용 버퍼(소트 버퍼)의 크기를 일시적으로 증가시켜 대용량 처리 쿼리의 선ㅇ능을 향상시키는 용도로도 사용할 수 있다.  
+다양한 시스템 변수 조정을 할 수 있지만 모든 시스템 변수 조정이 가능한건 아니다.  
+
+<br/>
+<br/>
+
+### SEMIJOIN & NO_SEMIJOIN 
+
+최적화 전략 | 힌트 
+:-- | :--
+Duplicate Weed-out | SEMIJOIN(DUPSWEEDOUT)
+First Match | SEMIJOIN(FIRSTMATCH)
+Loose Scan | SEMIJOIN(LOOSESCAN)
+Materialization | SEMIJOIN(MATERIALIZATION)
+Table Pull-out | 없음
+
+<br/>
+
+"Table Pull-out" 전략은 그 전략을 사용할 수 있다면 항상 더 나은 성능을 보장하므로 별도 힌트를 사용할 수 없다.  
+다른 최적화 저녉은 상황에 따라 다른 전략으로 우회하는 것이 더 나을 수 있기 때문에 NO_SEMIJOIN 힌트도 제공되는 것이다.  
+
+```sql
+EXPLAIN
+SELECT * FROM departments d
+WHERE d.dept_no IN (
+    SELECT /*+ SEMIJOIN(MATERIALIZATION) */ de.dept_no 
+    FROM dept_emp de
+);
+```
+
+세미조인 최적화 힌트는 외부 쿼리가 아니라 서브쿼리에 명시해야 한다.  
+
+다른 방법은 우선 서브쿼리에 쿼리 블록 이름을 정의하고 실제 세미 조인 힌트는 외부 쿼리 블록에 명시하는 방법이 있다. 
+
+```sql
+EXPLAIN
+SELECT /*+ SEMIJOIN(@subq1 MATERIALIZATION)  */ * 
+FROM departments d
+WHERE d.dept_no IN (
+    SELECT /*+ QB_NAME(subq1) */ de.dept_no 
+    FROM dept_emp de
+);
+```
+
+세미 조인 최적화 전략을 사용하지 않으려면 NO_SEMIJOIN 힌트를 명시하면 된다.  
+
+
+```sql
+EXPLAIN
+SELECT * FROM departments d
+WHERE d.dept_no IN (
+    SELECT /*+ NO_SEMIJOIN(DUPSWEEDOUT, FIRSTMATCH) */ de.dept_no 
+    FROM dept_emp de
+);
+```
+
+<br/>
+<br/>
+
+### SUBQUERY 
+
+서브쿼리 최적화는 세미 조인 최적화가 사용되지 못할 때 사용하는 최적화 방법이다.  
+
+최적화 방법 | 힌트
+:-- | :--
+IN-to-EXISTS | SUBQUERY(INTOEXISTS)
+Materialization | SUBQUERY(MATERIALIZATION)
+
+<br/>
+
+세미 조인 최적화는 주로 IN(subquery) 형태의 쿼리에 사용될 수 있지만 안티 세미 조인(Anti Semi-Join)의 최적화에는 사용될 수 없다.  
+그래서 주로 안티 세미 조인 최적화에는 위의 두 가지 최적화가 사용된다.  
+서브쿼리 최적화 힌트는 세미 조인 최적화 힌트와 비슷한 형태로, 서브쿼리에 힌트를 사용하거나 서브쿼리에 쿼리 블록 이름을 지정해서 외부 쿼리 블록에서 최적화 방법을 명시하면 된다.  
+
+<br/>
+<br/>
+
+### BNL & NO_BNL & HASHJOIN & NO_HASHJOIN
+
+8.0.18 버전부터 도입된 해시 조인이 블록 NL 조인을 대체하게 됐다.  
+8.0.20 버전부터 블록 NL 조인 관련 힌트를 사용하면 해시 조인 힌트를 유도하게 됐다.  
+대신 HASHJOIN, NO_HASHJOIN 조인은 8.0.20 버전부터 효력이 없고 BNL, NO_BNL 힌트를 사용해야 한다.  
+
+```sql
+SELECT /*+ BNL(e, de) */ *
+FROM employees e
+JOIN dept_emp de ON de.emp_no = e.emp_no;
+```
+
+<br/>
+<br/>
+
+### JOIN_FIXED_ORDER & JOIN_ORDER & JOIN_PREFIX & JOIN_SUFFIX
+
+조인 순서를 결정할 때 STRAIGHT_JOIN를 사용했었는데, STRAIGHT_JOIN 힌트는 우선 쿼리의 FROM 절에 사용된 테이블의 순서를 조인 순서에 맞게 변경해야 하는 번거로움이 있다.  
+또한 한번 사용되면 FROM 절의 모든 테이블의 조인 순서가 결정됐다.  
+
+이 단점을 보완하기 위해 다음 4개의 힌트를 제공한다.  
+- JOIN_FIXED_ORDER: STRAIGHT_JOIN 힌트와 동일하게 FROM 절의 테이블 순서대로 조인을 실행하게 하는 힌트
+- JOIN_ORDER: FROM 절에 사용된 테이블의 순서가 아니라 힌트에 명시된 테이블의 순서대로 조인을 실행하는 힌트
+- JOIN_PREFIX: 조인에서 드라이빙 테이블만 강제하는 힌트
+- JOIN_SUFFIX: 조인에서 드리븐 테이블(마지막에 조인돼야 할 테이블들)만 강제하는 힌트  
+
+<br/>
+
+```sql
+SELECT /*+ JOIN_FIXED_ORDER() */ *
+FROM employees e
+JOIN dept_emp de ON de.emp_no = e.emp_no
+JOIN departments ON d.dept_no = de.dept_no;
+
+SELECT /*+ JOIN_ORDER(d, de) */ *
+FROM employees e
+JOIN dept_emp de ON de.emp_no = e.emp_no
+JOIN departments ON d.dept_no = de.dept_no;
+
+SELECT /*+ JOIN_PREFIX(e, de) */ *
+FROM employees e
+JOIN dept_emp de ON de.emp_no = e.emp_no
+JOIN departments ON d.dept_no = de.dept_no;
+
+SELECT /*+ JOIN_SUFFIX(de, e) */ *
+FROM employees e
+JOIN dept_emp de ON de.emp_no = e.emp_no
+JOIN departments ON d.dept_no = de.dept_no;
+```
+
+<br/>
+<br/>
+
+### MERGE & NO_MERGE
+
+예전 버전의 서버에서는 FROM 절에 사용된 서브쿼리를 항상 내부 임시 테이블로 생성했다. 이 내부 임시 테이블을 파생 테이블이라고 하는데, 불필요한 자원 소모를 유발한다.  
+현재 버전에서는 임시 테이블을 사용하지 않게 FROM 절의 서브쿼리를 외부 쿼리와 병합하는 최적화를 도입했다.  
+
+옵티마이저가 내부 쿼리를 외부 쿼리와 병합하는 것이 나을 수도 있고, 때로는 내부 임시 테이블을 생성하는 것이 더 나은 선택일 수도 있다.  
+옵티마이저가 최적을 선택하지 못할 때 힌트를 사용하면 된다.  
+
+```sql
+EXPLAI
+SELECT /*+ MERGE(sub) */ *
+FROM (
+    SELECT *
+    FROM employees
+    WHERE first_name = 'Matt'
+) sub LIMIT 10;
+
+EXPLAI
+SELECT /*+ NO_MERGE(sub) */ *
+FROM (
+    SELECT *
+    FROM employees
+    WHERE first_name = 'Matt'
+) sub LIMIT 10;
+```
+
+<br/>
+<br/>
+
+### INDEX_MERGE & NO_INDEX_MERGE
+
+서버는 가능하면 테이블당 하나의 인덱스만으로 쿼리를 처리하려고한다.  
+하나의 인덱스만으로 검색 대상 범위를 충분히 좁힐 수 없다면 옵티마이저는 사용 가능한 다른 인덱스를 이용하기도 한다.  
+여러 인덱스를 통해 검색된 레코드로부터 교집합 또는 합집합만을 구해서 그 결과를 반환한다.  
+이처럼 하나의 테이블에 대해 여러 개의 인덱스를 동시에 사용하는 것을 인덱스 머지라고 한다.  
+인덱스 머지 실행 계획은 때로는 성능 향상에 도움되지만 안될 수도 있다.  
+
+```sql
+EXPLAIN
+SELECT /*+ NO_INDEX_MERGE(employees PRIMARY) */ *
+FROm employees first_name = 'Georgi' AND emp_no BETWEEN 10000 AND 20000;
+
+EXPLAIN
+SELECT /*+ INDEX_MERGE(employees ix_firstname, PRIMARY) */ *
+FROm employees first_name = 'Georgi' AND emp_no BETWEEN 10000 AND 20000;
+```
+
+<br/>
+<br/>
+
+### NO_ICP
+
+인덱스 컨디션 푸시다운 최적화는 사용 가능하다면 항상 성능 향상에 도움이 되므로 옵티마이저는 최대한 사용하는 방향으로 실행 계획을 수립한다. 그래서 옵티마이저는 ICP 힌트는  제공되지 않는다.  
+그런데 인덱스 컨디션 푸시다운으로 인해 여러 실행 계획의 비용 계산이 잘못된다면 결가적으로 잘못된 실행 계획을 수립하게 될 수도 있다.  
+
+A, B 인덱스가 있을 때 A 인덱스를 사용하는 것이 비용이 적게 나왔지만, 실제 서비스에서는 B 인덱스가 효율적일 수 있다.  
+이때 인덱스 컨디션 푸시다운 최적화만 비활성화해서 A또는 B 인덱스가 유연하게 선택할 수 있게 할 수 있다.  
+
+```sql
+EXPLAIN
+SELECT /*+ NO_ICP(employees ix_lastname_firstname) */ *
+FROM employees
+WHERE last_name = 'Action' AND first_name LIKE '%sal';
+```
+
+<br/>
+<br/>
+
+### SKIP_SCAN & NO_SKIP_SCAN
+
+인덱스 스킵 스캔은 인덱스의 선행 컬럼에 대한 조건이 없어도 옵티마이저가 해당 인덱스를 사용할 수 있게 해주는 훌륭한 최적화 기능이다.  
+하지만 조건이 누락된 선행 컬럼이 가지는 유니크한 값의 개수가 많아진다면 인덱스 스킵 스캔의 성능은 오히려 더 떨어진다.  
+옵티마이저가 유니크한 값의 개수를 제대로 분석 못하거나 잘못된 경로로 비효율이 발생하면 인덱스 스킵 스캔을 사용하지 않도록 할 수 있다.
+
+```sql
+EXPLAIN
+SELECT /*+ NO_SKIP_SCAN(employees ix_gender_birthdate) */ gender, birth_date
+FROM employees
+WHERE birth_date >= '1965-02-01';
+```
+
+### INDEX & NO_INDEX
+
+두 힌트는 예전 MySQL 서버에서 사용되던 인덱스 힌트를 대체하는 용도로 제공된다.  
+
+인덱스 힌트 | 옵티마이저 힌트
+:-- | :--
+USE INDEX | INDEX
+USE INDEX FOR GROUP BY | GROUP_INDEX
+USE INDEX FOR ORDER BY | ORDER_INDEX
+IGNORE INDEX | NO_INDEX
+IGNORE INDEX FOR GROUP BY | NO_GROUP_INDEX
+IGNORE INDEX FOR ORDER BY | NO_ORDER_INDEX
+
+<br/>
+
+인덱스 힌트는 특정 테이블 뒤에 사용했기 때문에 별도로 힌트 내에 테이블명 없이 인덱스 이름만 나열했지만, 옵티마이저 힌트에는 테이블명과 인덱스 이름을 함께 명시해야 한다.  
+
+```sql
+-- 인덱스 힌트
+EXPLAIN
+SELECT *
+FROM employees USE INDEX(ix_firstname)
+WHERE first_name = 'Matt';
+
+-- 옵티마이저 힌트
+EXPLAIN
+SELECT /*+ INDEX(employees ix_firstname)*/ *
+FROM employees
+WHERE first_name = 'Matt';
+```
