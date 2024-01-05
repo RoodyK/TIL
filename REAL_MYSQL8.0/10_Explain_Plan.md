@@ -745,3 +745,683 @@ table 컬럼에 `<>`로 둘러싸인 이름이 명시되는 경우는 임시 테
 <br/>
 
 ### type 컬럼
+
+실행 계획에서 type 이후의 컬럼은 MySQL 서버가 각 테이블의 레코드를 어떤 방식으로 읽었는지를 나타낸다.  
+방식은 인덱스를 사용해 레코드를 읽었는지, 아니면 풀 테이블 스캔으로 레코드를 읽었는지 등을 의미한다.  
+일반적으로 쿼리를 튜닝할 때 인덱스를 효울적으로 사용하는지 확인하는 것이 중요하므로 실행 꼐획에서 type 컬럼은 반드시 체크해야 할 중요한 정보다.  
+
+type 컬럼은 각 테이블의 접근 방법(Access Type)으로 해석하면 된다.  
+
+type 컬럼의 값 중 ALL(풀 테이블 스캔)을 제외하면 나머지는 모두 인덱스를 사용하는 접근 방법이다.  
+하나의 쿼리는 접근 방법 중 단 하나만 사용할 수 있으며, index_merge를 제외한 나머지 접근 방법은 하나의 인덱스만 사용한다.  
+
+다음은 성능 순으로 정렬한 type 컬럼의 표시값이다. (죄측이 가장 빠름)
+
+system > const > eq_ref > ref > fulltext > ref_or_unll > unique_subquery > index_subquery > range > index_merge > index > ALL
+
+<br/>
+
+#### system  
+레코드가 1건만 존재하는 테이블 또는 한 건도 존재하지 않는 테이블을 참조하는 형태의 접근 방법이다.  
+이 접근 방법은 MEMORY, MyISAM 스토리지 엔진을 사용하는 테이블에서만 사용되는 방식이다.  
+
+```sql
+CREATE TABLE tb_dual(fd1 INT NOT NULL) ENGINE=MyISAM;
+INSERT INTO tb_dual VALUES(1);
+
+EXPLAIN SELECT * FROM tb_dual;
+```
+
+InnoDB 스토리지 엔진을 사용하면 type 컬럼이 ALL 또는 index로 표시될 가능성이 크다.  
+
+<br/>
+
+#### const  
+
+테이블의 레코드 건수와 관계없이 쿼리가 프라이머리 키나 유니크 키 컬럼을 이용하는 WHERE 조건을 가지고 있으며, 반드시 1건을 반환하는 쿼리 방식을 const라고 한다.  
+다른 DBMS에선 유니크 인덱스 스캔이라고도 표현한다.  
+
+```sql
+EXPLAIN SELECT * FROM employees WHERE emp_no = 10001;
+```
+
+<br/>
+
+PK나 유니크 키 중 인덱스의 일부 컬럼만 조건으로 사용할 때는 const 타입의 접근 방법을 사용할 수 없다.  레코드가 1건임을 확신할 수 없기 때문이다.  
+
+```sql
+-- ref로 표시
+EXPLAIN SELECT * FROM demp_emp WHERE dept_no = 'd005';
+```
+
+<br/>
+
+실행 계획의 type 컬럼이 const 인 실행 계획은 옵티마이저가 쿼리를 최적화하는 단계에서 쿼리를 먼저 통째로 상수화한다.  
+
+<br/>
+
+#### eq_ref  
+
+eq_ref 접근 방법은 여러 테이블이 조인되는 쿼리의 실행 계획에서만 표시된다.  
+조인에서 처음 읽은 테이블의 컬럼 값을, 그다음 읽어야 할 테이블의 PK나 유니크 키 컬럼의 검색 조건에 사용할때를 가리켜 eq_ref라고 한다. 이때 두 번째 이후에 읽는 테이블의 type 컬럼에 eq_ref가 표시된다.  
+즉, 조인에서 두 번째 이후에 읽는 테이블에서 반드시 1건만 존재한다는(유니크한) 보장이 있어야 사용할 수 있는 접근 방법이다.  
+
+```sql
+EXPLAIN
+SELECT * FROM dept_emp de, employees e
+WHERE e.emp_no = de.emp_no AND de.dept_no = 'd005';
+```
+
+<br/>
+
+#### ref  
+
+ref 접근 방법은 eq_ref와는 달리 조인의 순서와 관계없이 사용하며, PK나 유니크 키 등의 제약조건도 없다.  
+인덱스의 종류와 관계없이 동등(Equal) 조건으로 검색할 때는 ref 접근 방법이 사용된다.  
+ref 타입은 반환되는 레코드가 반드시 1건이라는 보장이 없으므로 const나 eq_ref보다는 느리지만, 동등 조건으로 비교되므로 빠른 조회 방법이다.  
+
+```sql
+EXPLAIN
+SELECT * FROM dept_emp WHERE dept_no = 'd005';
+```
+
+const, eq_ref, ref 세 가지 방법은 실제 데이터 분포나 레코드 건수에 따라 순서는 달라질 수 있으나 모두 좋은 접근 방법이다. (따로 튜닝하지 않아도 됨)  
+
+<br/>
+
+#### fulltext
+
+fulltext 접근 방법은 서버의 전문 검색(Full-text Search) 인덱스를 사용해 레코드를 읽는 접근 방법을 의미한다.  
+전문 검색 인덱스는 통계 정보가 관리되지 않으며, 전문 검색 인덱스를 사용하려면 전혀 다른 SQL 문법을 사용해야 한다.  
+
+전문 검색 인덱스는 우선 순위가 높으며 반드시 테이블에 전문 검색 인덱스가 존재해야 하고 `MATCH (...) AGAINST (...)` 구문을 사용해서 실행한다.  
+
+
+```sql
+-- 전문 검색 인덱스가 있다고 가정
+CREATE FULLTEXT INDEX idx_name ON employees (first_name, last_name) WITH PARSER ngram;
+
+EXPLAIN
+SELECT * FROM employees
+AND emp_no BETWEEN 10001 AND 10005
+AND MATCH(first_name, last_name) AGAINST('Facello') IN BOOLEAN MODE;
+```
+
+전문 검색 인덱스보단 일반 인덱스를 이용하는 range 접근이 더 빨리 처리되는 경우가 많으므로 전문 검색 쿼리를 사용할 때는 조건별로 성능을 확인하자.  
+
+<br/>
+
+#### ref_or_null  
+
+ref와 접근 방법은 같은데, NULL 비교가 추가된 형태다. 이름대로 ref방식 또는 비교(IS NULL) 접근 방법을 의미한다.  
+
+```sql
+EXPLAIN SELECT * FROM titles
+WHERE to_date = '1985-03-01' OR to_date IS NULL;
+```
+
+<br/>
+
+#### unique_subquery  
+
+WHERE 조건절에서 사용될 수 있는 IN(subquery) 형태의 쿼리를 위한 접근이다. 서브쿼리에서 중복되지 않는 유니크한 값만 반환할 때 이 접근 방법을 사용한다.  
+
+```sql
+EXPLAIN SELECT & FROM  departments
+WHERE dept_no IN (SELECT dept_no FROM dept_emp WHERE emp_no = 100001);
+```
+
+<br/>
+
+#### index_subquery
+
+IN 연산자의 특성상 IN(subquery) 또는 IN(상수 나열) 형태의 조건은 괄호 안에 있는 값의 목록에서 중복된 값이 먼저 제거되야 한다.  
+index_subquery는 서브쿼리 결과의 중복된 값을 인덱스를 이용해서 제거할 수 있을 때 사용된다.  
+
+- umique_subquery: IN(subquery) 형태의 조건에서 서브쿼리의 반환 값에는 중복이 없으므로 별도의 중복 제거 작업이 필요하지 않음
+- index_subquery: IN(subquery) 형태의 조건에서 서브쿼리의 반환 값이 중복된 값이 있을 수 있지만 인덱스를 이용해 중복된 값을 제거할 수 있음  
+
+<br/>
+
+#### range
+
+range는 인덱스 레인지 스캔 형태의 접근 방법으로, 인덱스를 하나의 값이 아니라 범위로 검색하는 경우를 의미한다. 주로 `<, >, IS NULL, BETWEEN, INm LIKE` 등의 연산자를 이용해 인덱스를 검색할 때 사용한다.  
+우선순위 중 낮은 편이지만 range 접근도 빠른편이며, 이 접근 방법만 사용해도 최적의 성능이 보장된다.  
+
+```sql
+EXPLAIN 
+SELECT * FROM employees WHERE emp_no = BETWEEN 10002 AND 10004;
+```
+
+<br/>
+
+보통 실무에서 const, ref, range 접근 방법을 모두 인덱스 레인지 스캔, 레인지 스캔이라고 말한다.  
+
+<br/>
+
+#### index_merge 
+
+2개 이상의 인덱스를 이용해 각각의 검색 결과를 만들어낸 후, 그 결과를 병합해서 처리하는 방식이다. 이름만큼 효율적으로 작동하지는 않는다.   
+
+- 여러 인덱스를 읽어야 하므로 일반적으로 range 접근 방법보다 효율성이 떨어진다.  
+- 전문 검색 인덱스를 사용하는 쿼리에서는 index_merge가 적용되지 않는다.  
+- index_merge 접근 방법으로 처리된 결과는 항상 2개 이상의 집합이 되기 때문에 그 두 집합의 교집합이나 합집합, 또는 중복 제거와 같은 부가적인 작업이 더 필요하다.  
+
+index_merge 접근 방법이 사용될 때는 실행 계획에 조금 더 보완적인 내용이 표시된다.(Extra 부분 학습)  
+
+```sql
+EXPLAIN
+SELECT * FROm employees
+WHERE emp_no BETWEEN 10001 AND 11000
+OR first_name = 'Smith';
+```
+
+<br/>
+
+#### index
+
+index 접근 방법은 인덱스를 처음부터 끝까지 읽는 인덱스 풀 스캔을 의미한다.  
+range 접근 방법과 같이 효율적으로 인덱스의 필요한 부분만 읽는 것이 아니다.  
+
+index 접근 방법은 테이블을 처음부터 끝까지 읽는 풀 테이블 스캔 방식과 비교하는 레코드 건수는 같지만 인덱스가 전반적으로 데이터 파일 전체보다 크기가 작으므로 인덱스 풀 스캔이 테이블 풀 스캔보다 빠르게 처리되며, 쿼리의 내용에 따라 인덱스의 장점을 이용할 수 있으므로 효율적이다.  
+
+인덱스 접근 방식이 사용되는 쿼리의 예시이며, 1, 2 조건을 충족하거나 1, 3 조건을 충족하는 쿼리에서 사용된다.  
+
+- range나 const, ref 접근 방법으로 인덱스를 사용하지 못하는 경우
+- 인덱스에 포함된 컬럼만으로 처리할 수 있는 쿼리인 경우(데이터 파일을 읽지 않아도 되는 경우)
+- 인덱스를 이용해 정렬이나 그루핑 작업이 가능한 경우(별도의 정렬 작업을 피할 수 있는 경우)  
+
+```sql
+-- 조건은 없지만 정렬 조건의 컬럼에 대한 인덱스가 존재하여 인덱스 스캔
+-- LIMIT 조건으로 인해 효율적이지만 LIMIT 가 없으면 상당히 느린처리가 됨
+EXPLAIN
+SELECT * FROM departments ORDER BY dept_name DESC LIMIT 10;
+```
+
+<br/>
+
+#### ALL
+
+풀 테이블 스캔을 의미하는 접근 방법이다. 테이블을 처움브터 끝까지 전부 읽는 방식으로 가장 비효율 적인 방식이다.  
+
+다른 DBMS와 같이 InnoDB도 풀 테이블 스캔이나 인덱스 풀 스캔과 같은 대량의 디스크 I/O를 유발하는 작업을 위해 한꺼번에 많은 페이지를 읽어들이는 기능을 제공한다. 이 기능을 리드 어헤드(Read Ahead)라고 하며, 한 번에 여러 페이지를 읽어서 처리할 수 있다.  
+배치 프로그램처럼 대량의 레코드를 처리하는 쿼리에서 잘못 튜닝된 쿼리보다는 더 나은 접근 방법이다.  
+
+일반적으로 index와 ALL 접근 방법은 작업 범위를 제한하는 조건이 아니므로 빠른 응답을 사용자에게 보내야 하는 웹 서비스 등과 같은 온라인 트랜잭션 처리 환경에서는 적합하지 않다.  
+
+<br/>
+
+MuSQL 서버에서는 인접한 페이지가 연속해서 몇 번 읽히면 백그라운드로 작동하는 읽기 스레드가 최대 64개의 페이지씩 한꺼번에 디스크로부터 읽어 들이기 때문에 한 번에 페이지 하나씩 읽어 들이는 작업보다는 상당히 빠르게 레코드를 읽을 수 있는데, 이 작업을 리드 어헤드라고 한다.  
+
+<br/>
+<br/>
+
+#### possible_keys 컬럼
+
+이 컬럼의 내용은 옵티마이저가 최적의 실행 계획을 만들기 위해 후보로 선정했던 접근 방법에서 사용되는 인덱스 목록일 뿐이다.  
+즉, 말 그대로 "사용될법했던 인덱스의 목록"이다.  
+
+<br/>
+<br/>
+
+### key 컬럼
+
+key 컬럼에 표시되는 인덱스는 최종 선택된 실행 계획에서 사용하는 인덱스를 의미한다.  
+쿼리를 튜닝할 때 key 컬럼에 의도했던 인덱스가 표시되는지 확인하는 것이 중요하다.  
+
+type이 index_merge인 경우 인덱스가 쉼표로 구분되어 여러개 표시된다.  
+
+<br/>
+<br/>
+
+### key_len 컬럼
+
+key_len 컬럼은 쿼리를 처리하기 위해 다중 컬럼으로 구성된 인덱스에서 몇 개의 컬럼까지 사용했는지 알려준다.  
+정확하게는 인덱스의 각 레코드에서 몇 바이트까지 사용했는지 알려주는 값이다. 다중 컬럼 인덱스뿐 아니라 단일 컬럼으로 만들어진 인덱스에서도 같은 지표를 제공한다. 
+
+```sql
+EXPLAIN 
+SELECT * FROM dept_emp WHERE dept_no = 'd005';
+```
+
+쿼리를 실행하면 key_len 값이 16으로 표시되는데 dept_no 컬럼의 타입이 `CHAR(4)`이기 때문에 PK에서 앞쪽 16바이트만 유효하게 사용했다는 의미다.  
+테이블의 dept_no는 unf8mb4 문자 집합(문자 하나당 1~4 바이트)을 사용하는데, MySQL 서버가 utf8mb4 문자를 위해 메모리 공간을 할당해야할 때는 고정적으로 4바이트로 계산한다.  
+
+<br/>
+
+```sql
+EXPLAIN 
+SELECT * FROM dept_emp WHERE dept_no = 'd005' AND emp_no = 10001;
+```
+
+key_len에서 데이터가 NULL을 허용하면 NULL이 저장될 수 있는 컬럼으로 정의되서 1바이트가 추가적으로 사용된다.  
+date 타입이 3바이트인데 nullable 컬럼이면 4바이트의 key_len 값이 나타난다.  
+
+<br/>
+<br/>
+
+### ref 컬럼
+
+접근 방법이 ref면 참조 조건(Equal 비교 조건)으로 어떤 값이 제공댔는지 보여준다.  상수값을 지정했다면 ref 컬럼의 값은 const로 표시되고, 다른 테이블의 컬럼값이면 그 테이블명과 컬럼명이 표시된다.  
+이 컬럼의 출력 내용은 신경쓰지 않아도 무방하지만, 예외 케이스가 있다.  
+
+실행 계획에서 ref 컬럼 값이 func라고 표시될 때가 있는데 `FUNCTION`의 줄임말로 참조용으로 사용되는 값을 그대로 사용한 것이 아닌 콜레이션 변환이나 값 자체의 연산을 거쳐서 참조됐는 것을 의미한다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees e, dept_emp ed WHERE e.emp_no = (de.emp_no - 1); 
+```
+
+사용자가 명시적으로 값을 변활할 때뿐만 아니라 MySQL 서버가 내부적으로 값을 변환해야할 때도 ref 컬럼에는 func가 출력된다.  
+
+<br/>
+<br/>
+
+### rows 컬럼 
+
+옵티마이저는 각 조건에 대해 가능한 처리 방식을 나열하고, 각 처리 방식의 비용을 비교해 최종적으로 하나의 실행 계획을 수립한다.  
+이때 각 처리 방식이 얼마나 많은 레코드를 읽고 비교해야 하는지 예측해서 비용을 산정한다.  
+대상 테이블에 얼마나 많은 레코드가 포함돼 있는지 또는 각 인덱스 값의 분포도가 어떤지를 통계 정보를 기준으로 조사해서 예측한다.  
+
+rows 컬럼값은 실행 계획 효율성 판단을 위해 예측했던 레코드 건수를 보여준다.  
+이 값은 각 스토리지 엔진별로 가지고 있는 통계 정보를 참조해 MySQL 옵티마이저가 산출해 낸 예상값이라서 정확하지는 않다.  
+또한 rows 컬럼에 표시되는 값은 반환하는 레코드의 예측치가 아니라 쿼리를 처리하기 위해 얼마나 많은 레코드를 읽고 체크해야 하는지를 의미한다. 그래서 rows 컬럼의 표시값은 실제 쿼리에 반환된 레코드 수는 일치하지 않는 경우가 많다.  
+
+```sql
+EXPLAIN
+SELECT * FROM dept_emp WHERE from_date >= '1985-01-01';
+
+EXPLAIN
+SELECT * FROM dept_emp WHERE from_date >= '2002-07-01';
+```
+
+<br/>
+
+옵티마이저가 예측한 값은 틀릴 가능성이 높다. 옵티마이저가 예측하는 수치는 대략의 값이지 정확한 값을 산출하기 위한 기능은 아니다. 하지만 대략의 수치에는 어느 정도 근접해야 하며, 그래야 옵티마이저는 제대로 된 실행 계획을 수립할 수 있다. 이를 위해 히스토그램이 도입됐다.  
+
+<br/>
+<br/>
+
+#### filtered 컬럼
+
+rows 컬럼의 값은 인덱스를 사용하는 조건에만 일치하는 레코드 건수를 예측한 것이다.  
+하지만 대부분 쿼리에서 WHERE 절에 사용되는 조건이 모두 인덱스를 사용할 수 있는 것은 아니다.  
+특히 조인이 사용되는 겨웅에는 WHERE 절에서 인덱스를 사용할 수 있는 조건도 중요하지만 인덱스를 사용하지 못하는 조건에 일치하는 레코드 건수를 파악하는 것도 중요하다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees e, salaries s
+WHERE e.first_name = 'Matt'
+AND e.hire_date BETWEEN '1990-01-01' AND '1991-01-01'
+AND s.emp_no = e.emp_no
+AND s.from_date BETWEEN '1990-01-01' AND '1991-01-01'
+AND s.salary BETWEEN 50000 AND 60000;
+```
+
+filtered 컬럼의 값은 필터링되어 버려지는 레코드의 비율이 아니라 필터링되고 남은 레코드의 비율을 의미한다.  
+employees 테이블에서 salaries 테이블로 조인을 수행한 레코드 건수는 37(233 * 0.1604)건 정도였음을 알 수 있다.  
+
+```sql
+-- 조인 순서 변경 후 확인
+EXPLAIN
+SELECT /*+ JOIN_ORDER(s, e) */ * FROM employees e, salaries s
+WHERE e.first_name = 'Matt'
+AND e.hire_date BETWEEN '1990-01-01' AND '1991-01-01'
+AND s.emp_no = e.emp_no
+AND s.from_date BETWEEN '1990-01-01' AND '1991-01-01'
+AND s.salary BETWEEN 50000 AND 60000;
+```
+
+히스토그램은 filtered 컬럼의 값을 더 정확히 예측할 수 있게 해준다.  
+
+<br/>
+<br/>
+
+### Extra 컬럼
+
+Extra 컬럼은 성능에 관련된 중요 내용이 표시되며, 고정된 몇 개의 문장이 표시되는데 일반적으로 2~3개씩 함께 표시된다.  
+Extra 컬럼에는 주로 내부적인 처리 알고리즘에 대해 조금 더 깊이 있는 내용을 보여주는 경우가 많다.  
+
+<br/>
+
+#### const row not found  
+
+쿼리 실행 계획에서 const 접근 방법으로 테이블을 읽었지만 실제로 해당 테이블에 레코드가 1건도 존재하지 않으면 이 내용이 표시된다.  
+이 메시지가 표시되는 경우 테이블에 테스트 데이터를 저장하고 다시 실행 계획을 확인해 보는 것이 좋다.  
+
+<br/>
+
+#### Deleting all rows  
+
+MyISAM 스토리지 엔진과 같이 스토리지 엔진의 핸들러 차원에서 테이블의 모든 레코드를 삭제하는 기능을 제공하는 스토리지 엔진 테이블인 경우 이 문구가 표시된다.  
+`Deleting all rows` 문구는 WHERE 조건절이 없는 DELETE 문장의 실행 계획에서 자주 표시되며, 이 문구는 테이블의 모든 레코드를 삭제하는 핸들러 기능(API)을 한번 호출함으로써 처래됐다는 것을 의미한다.  
+기존에는 테이블의 레코드를 삭제하기 위해 각 스토리지 엔진의 핸들러 함수를 레코드 건수만큼 호출해서 삭제헤야 했는데, `Deleting all rows` 처리 방식은 한 번의 핸들러 함수 호출로 간단하고 빠르게 처리할 수 있다.
+
+8.0 버전부터는 더이상 표시되지 않고 테이블의 모든 레코드를 삭제시 DELETE 문이 아닌 TRUNCATE TABLE 명령을 사용할 것을 권장한다.  
+
+<br/>
+
+#### Distinct
+
+```sql
+EXPLAIN 
+SELECT DISTINCT d.dept_no
+FROm departments d, dept_emp de WHERE de.dept_no = d.dept_no;
+```
+
+Distinct 문을 사용한 쿼리에 나타나며 원하는 컬럼을 중복 없이 유니크하게 가져오기 위해 사용한다.  
+
+<br/>
+
+#### FirstMatch
+
+세미 조인의 여러 최적화 중에서 FirstMatch 전략이 사용되면 Extra 컬럼에 `FirstMatch(테이블명)` 메시지를 출력한다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees e
+WHERE e.first_name = 'Matt'
+AND e.emp_no IN (
+    SELECT t.emp_no FROM titles t
+    WHERE t.from_date BETWEEN '1995-01-01' AND '1995-01-30'
+);
+```
+
+FirstMAtch 메시지에 함께 표시되는 테이블명은 기준 테이블을 의미하는데, 위 실행 계획의 경우 employees 테이블 기준으로 titles 테이블에서 첫 번째로 일치하는 한 건만 검색한다는 것을 의미한다.  
+
+<br/>
+
+#### Full scan on NULL key  
+
+이 처리는 `col1 IN (SELECT col2 FROm ...)`과 같은 조건을 가진 쿼리에서 자주 발생할 수 있는데, col1의 값이 NULL이 된돠면 결과적으로 조건은 `NULL IN (SELECT col2 FROm ...)`과 같이 바뀐다.  
+SQL 표준은 NULL을 "알 수 없는 값"으로 정의하고 있으며, NULL에 대한 연산의 규칙까지 정의하고 있다.  정의대로 연산을 수행하기 위해서는 다음처럼 비교돼야 한다.  
+
+- 서브쿼리가 1건이라도 결과 레코드를 가진다면 최종 비교 결과는 NULL
+- 서브쿼리가 1건도 결과 레코드를 가지지 않는다면 최종 비교 결과는 FALSE  
+
+<br/>
+
+이 비교 과정에서 col1이 NULL이면 서브쿼리에 사용된 테이블에 대해서 풀 테이블 스캔을 해야만 결과를 알아낼 수 있다.  
+`Full scan on NULL key`는 서버가 쿼리를 실행하는 중 col1이 NULL을 만나면 차선책으로 서브쿼리 테이블에 대해서 풀 테이블 스캔을 사용할 것이라는 사실을 알려주는 키워드다.  
+
+```sql
+EXPLAIN
+SELECT d1.dept_no, NULL IN (SELECT d2.dept_name FROM departments d2) FROM departments d1;
+```
+
+NULL 비교 규칙을 무시해도 된다면 이를 옵티마이저에게 알려주면 된다. 주로 사용되는 방법은 `col1 IS NOT NULL`조건을 지정하는 것이다.  
+
+`Full scan on NULL key` 코멘트가 실행 계획의 Extra 컬럼에 표시됐다고 하더라도 IN이나 NOT IN 연산자의 왼쪽에 있는 값이 실제로 NULL이 없다면 서브쿼리의 테이블에 대한 풀 테이블 스캔은 발생하지 않으니 걱정안해도 된다.  
+
+<br/>
+
+#### Impossible HAVING  
+
+쿼리에 사용된 HAVING 절의 조건을 만족하는 레코드가 없을 때 표시된다.
+
+<br/>
+
+#### Impossible WHERE
+
+쿼리에 사용된 WHERE 조건이 항상 FALSE가 될 수밖에 없는 경우 표시된다.  
+
+<br/>
+
+#### LooseScan  
+
+세미 조인 최적화 중에서 LooseScan 최적화 전략이 사용되면 표시된다.  
+
+<br/>
+
+#### No matching min/max row  
+
+MIN()이나 MAX()와 같은 집합 함수가 있는 쿼리의 조건절에 일치하는 코드가 한 건도 없을때 Extra 컬럼에 표시되며 결과로 NULL이 반환된다.  
+
+```sql
+EXPLAIN 
+SELECT MIN(dept_no), MAX(dept_no) FROM dept_emp WHERE dept_no = '';
+```
+
+<br/>
+
+#### no matching row in const table  
+
+조인이 사용된 테이블에서 const 방법으로 접근할 때 일치하는 레코드가 없다면 표시된다.  
+
+```sql
+SELECT * FROM dept_emp de, (SELECT emp_no FROM employees WHERE emp_no = 0) tb1
+WHERE tb1.emp_no = de.emp_no AND de.dept_no = 'd0005';
+```
+
+<br/>
+
+#### No matching rows after partition pruning  
+
+파티션된 테이블에 대한 UPDATE 또는 DELETE 명령의 실행 계획에서 표시될 수 있는데, 해당 파티션에서 UPDATE, DELETE 할 대상 레코드가 없을 때 표시된다.  
+
+<br/>
+
+#### No tables used  
+
+FROM 절이 없는 쿼리 문장이나 `FROM DUAL` 형태의 쿼리 실행 계획에서 표시된다.  
+
+<br/>
+
+#### NOot exists  
+
+프로그램을 개발하다 보면 A 테이블에는 존재하지만 B 테이블에는 없는 값을 조회해야 하는 쿼리가 자주 사용된다. 이 때 주로 `NOT IN(subquery)` 형태나 `NOT EXISTS` 연산자를 주로 사용한다. 이 형태를 안티-조인이라고 한다.  
+똑같은 처리를 아우터 조인(LEFT OUTER JOIN)으로 할 수도 있다.  
+일반적으로 안티-조인으로 처리해야 하지만 레코드의 건수가 많을 때는 아우터 조인을 이용하면 빠른 성능을 낼 수 있다.  
+
+```sql
+EXPLAIN
+SELECT * FROM dept_emp de
+LEFT JOIN departments d ON de.dept_no = d.dept_no
+WHERE d.dept_no IS NULL;
+```
+
+아우터 조인을 이용해 안티-조인을 수행하는 쿼리에서는 실행 계획의 Extra 컬럼에 "Not exists" 메시지가 표시된다. 이는 옵티마이저가 dept_emp 테이블의 레코드를 이용해 departments 테이블을 조인할 때 departments 테이블의 레코드가 존재하는지 아닌지만 판단한다는 것을 의미한다.  
+즉, departments 테이블의 조인 조건에 일치하는 레코드가 여러 건 있다고 하더라도 딱 1건만 조회해보고 처리를 완료하는 최적화를 의미한다.  
+
+<br/>
+
+#### Plan isn't ready yet  
+
+```sql
+-- 실행중인 쿼리의 실행 계획 확인
+SHOW PROCESSLIST;
+
+-- 옵티마이저가 의도된 인덱스를 사용하지 못해서 풀 스캔을 한다거나 잘못된 실행 계획을 선택한 것이 아닌지 확인할 때 사용할 수 있는 명령어
+EXPLAIN FOR CONNECTION [id];
+```
+
+`Plan isn't ready yet`은 EXPLAIN FOR CONNECTION 명령을 실행했을 때 해당 커넥션에서 아직 쿼리의 실행 계획을 수립하지 못한 상태에서 EXPLAIN FOR CONNECTION 명령이 실행된 것을 의미한다.  
+
+<br/>
+
+#### Range checked for each record(index map:N)  
+
+```sql
+EXPLAIN 
+SELECT * FROM employees e1, employees e2
+WHERE e2.emp_no >= e1.emp_no;
+```
+
+employees 테이블의 emp_no가 1번부터 1억번까지 있다면 e1.emp_no가 1인 경우 e2 테이블의 데이터를 1억건 읽어야 한다. 반대로 e1.emp_no가 1억이면 e2 테이블을 1건만 읽으면 된다.  
+
+이처럼 emp_no가 작을때는 e2 테이블을 풀 테이블 스캔으로 접근하고 반대일 때는 인덱스 레인지 스캔으로 접근하는 형태가 최적의 방법이다.  
+이처럼 레코드마다 인덱스 레인지 스캔을 체크할 떄 `Range checked for each record(index map:N)`가 표시된다.  
+
+Extra 컬럼에 `Range checked for each record`가 표시되면 type 컬럼에는 ALL 로 표시된다. 즉, "index map"에 표시된 후보 인덱스를 사용할지 여부를 검토해서 이 후보 인덱스가 별로 도움이 되지 않는다면 최종적으로 풀 테이블 스캔을 사용하기 때문에 ALL로 표시된 것이다.  
+
+<br/>
+
+#### Recursive  
+
+8.0 부터 CTE(Common Table Expression)을 이용해서 재귀 쿼리를 작성할 수 있게 됐다.  
+
+```sql
+WITH RECURSIVE cte (n) AS
+(
+    SELECT 1
+    UNION ALL
+    SELECT n + 1 FROM cte WHERE n < 5
+)
+SELECT * FROM cte;
+```
+
+위 쿼리처럼 CTE을 이용한 재귀 쿼리의 실행 계획은 `Recursive`가 표시된다.  
+
+<br/>
+
+#### Rematerialize  
+
+8.0 부터 래터럴 조인 기능이 추가됐는데, 이 경우 래터럴로 조인되는 테이블은 선행 테이블의 레코드별로 서브쿼리를 실행해서 그 결과를 임시 테이블에 저장한다. 이 과정을 "Rematerializing"이라고 한다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees e
+LEFT JOIN LATERAL (
+    SELECT * FROM salaries s
+    WHERE s.emp_no = e.emp_no
+    ORDER BY s.from_date DESC LIMIT 2
+) s2 
+ON s2.emp_no = e.emp_no
+WHERE e.first_name = 'Matt';
+```
+
+쿼리 실행해서 매번 임시 테이블이 새로 생성되는 경우 "Rematerialize" 문구가 표시된다.  
+
+<br/>
+
+#### Select table optimized away  
+
+MIN() 또는 MAX()만 SELECT 절에 사용되거나 GROUP BY로 MIN(), MAX()를 조회하는 쿼리가 인덱스를 오름차순 또는 내림차순으로 1건만 읽는 형태의 최적화가 사용되면 표시된다.  
+
+MyISAM 테이블에서는 GROUP BY 없이 COUNT(*)만 SELECT할 때도 이런 형태의 최적화가 적용된다.  
+
+```sql
+EXPLAIN
+SELECT MAX(emp_no), MIN(emp_no) FROM employees;
+```
+
+<br/>
+
+#### Start temporary, End temporary  
+
+세미 조인 최적화 중에서 Duplicate Weed-out 최적화 전략이 사용되면 MySQL 옵티마이저는 `Start temporary`나 `End temporary`를 표시한다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees e
+WHERE e.emp_no IN (SELECT s.emp_no FROM salaries s WHERE s.salary > 150000);
+```
+
+Duplicate Weed-out 최적화 전략은 불필요한 중복 건을 제거하기 위해서 내부 임시 테이블을 사용하는데, 이때 조인되어 내부 임시 테이블에 저장되는 테이블을 식별할 수 있게 첫 번째 테이블에는 "Start temporary" 문구를 보여주고 조인이 끝나는 부분에 "End temporary" 문구를 보여준다.  
+
+<br/>
+
+#### unique row not found  
+
+두 개의 테이블이 각각 유니크(PK 포함) 컬럼으로 아우터 조인을 수행하는 쿼리에서 아우터 테이블에 일치하는 레코드가 존재하지 않을 때 표시된다.  
+
+<br/>
+
+#### Using filesort  
+
+ORDER BY를 처리하기 위해 인덱스를 이용할 수도 있지만 적절한 인덱스를 사용하지 못할 때는 서버가 조회된 레코드를 다시 한번 정렬해야 한다.  
+ORDER BY 처리가 인덱스를 사용하지 못할 때만 실행 계획에 `Using filesort`가 표시되며, 이는 조회된 레코드를 정렬용 메모리 버퍼에 복사해 퀵 소트 또는 힙 소트 알고리즘을 이용해서 정렬을 수행하게 된다는 의미다.  
+
+```sql
+EXPLAIN
+SELECT * FROM employees
+ORDER BY last_name DESC;
+```
+
+실행 계획에 `Using filesort`가 출력되는 쿼리는 많은 부하를 일으키므로 쿼리 튜닝을하거나 인덱스를 생성하는 것이 좋다.  
+
+<br/>
+
+#### Using index(커버링 인덱스)  
+
+데이터 파일을 전혀 읽지 않고 인덱스만 읽어서 쿼리를 모두 처리할 수 있을 때 표시된다.  
+인덱스를 이용해 처리하는 쿼리에서 가장 큰 부하를 차지하는 부분은 인덱스 검색에서 일치하는 키 값들의 레코드를 읽기 위해 데이터 파일을 검색하는 작업이다.  
+쿼리에서 조회하는 컬럼이 데이터 파일이 아닌 인덱스로만 읽을 수 있을때 나타난다고 보면 된다.  
+
+<br/>
+
+#### Using index condition  
+
+옵티마이저가 인덱스 컨티션 푸시 다운 최적화를 사용하면 `Using index condition`이 표시된다.  
+
+<br/>
+
+#### Using index for group-by  
+
+GROUP BY 처리를 위해 서버는 그루핑 기준 컬럼을 이용해 정렬 작업을 수행하고 다시 정렬된 결과를 그루핑하는 형태의 고부하 작업을 필요로 한다.  
+GROUP BY 처리를 인덱스를 사용하면 정렬된 인덱스 컬럼을 순서대로 읽으면서 처리하는데 이를 통해 레코드 정렬이 필요하지 않고 필요한 부분만 읽으면 되기 때문에 작업이 빨라진다.  
+GROUP BY가 인덱스를 이용할 때 쿼리의 실행 계획에 `Using index for group-by`가 표시된다.  
+
+<br/>
+
+**타이트 인덱스 스캔(인덱스 스캔)을 통한 GROUP BY 처리**  
+
+인덱스를 이용해 GROUP BY를 처리할 수 있어도 AVG(), SUM(), COUNT()처럼 조회하려는 값이 모든 인덱스를 다 읽어야 할 때는 필요한 레코드만 읽을 수 없다. 이는 GROUP BY를 사용하지만, 루스 인덱스 스캔이라고 하지는 않는다.  
+그리고 이 쿼리의 실행 계획에는 `Using index for group-by` 메시지가 출력되지 않는다.  
+
+<br/>
+
+**루스 인덱스 스캔을 통한 GROUP BY 처리**  
+
+단일 컬럼으로 구성된 인덱스에는 그루핑 컬럼 말고는 아무것도 조회하지 않는 쿼리에서 루스 인덱스 스캔을 사용할 수 있다.  
+그리고 다중 컬럼으로 만들어진 인덱스에는 GROUP BY 절이 인덱스를 사용할 수 있어야 함은 물론이고 MIN(), MAX() 같이 인덱스의 첫 번째 또는 마지막 레코드만 읽어도 되는 쿼리는 루스 인덱스 스캔이 사용될 수 있다.  
+
+<br/>
+
+#### Using index for skip scan
+
+옵티마이저가 인덱스 스킵 스캔 최적화를 사용하면 표시된다.  
+
+<br/>
+
+#### Using join buffer(Block Nested Loop), Using join buffer(Batched Key Access), Using join buffer(hash join)  
+
+조인이 수행될 때 드리븐 테이블의 조인 컬럼에 적절한 인덱스가 있다면 아무런 문제가 되지 않는다.  
+하지만 드리븐 테이블에 검색을 위한 적절한 인덱스가 없다면 서버는 블록 NL 조인이나 해시 조인을 사용한다.  
+블록 NL 조인이나 해시 종니을 사용하면 서버는 조인 버퍼를 사용한다. 이 실행 계획에 `Using join buffer`가 표시된다.  
+
+<br/>
+
+#### Using MRR
+
+MRR 최적화가 사용된 쿼리에 표시된다.  
+
+<br/>
+
+#### Using sort_union(...), Using union(...), Using intersect(...)  
+
+- Using intersect(...): 각각의 인덱스를 사용할 수 있는 조건이 AND로 연결된 경우 각 처리 결과에서 교집합을 추출해 내는 작업을 수행했다는 의미다.
+- Using union(...): 각 인덱스를 사용할 수 있는 조건이 OR로 연결된 경우 각 처리 결과에서 합집합을 추출해내는 작업을 수행했다는 의미다.  
+- Using sort_union(...): Using union과 같은 작업을 수행하지만 Using union으로 처리될 수 없는 경우(OR로 연결된 상대적으로 대량의 range 조건들) 이 방식으로 처리된다. Using union과 차이점은 PK만 먼저 읽어서 정렬하고 병합한 이후 비로소 레코드를 읽어서 반환할 수 있다는 것이다.  
+
+<br/>
+
+#### Using temporary  
+
+서버에서 쿼리를 처리하는 동안 중간 결과를 담아두기 위해 임시 테이블을 사용한다.  
+임시 테이블은 메모리상에 생성될 수도 있고 디스크상에 생성될 수도 있다.  
+`Using temporary`가 표시되면 임시 테이블이 사용된 것이며, 메모리에 생성됐는지 디스크에 생성됐는지는 알 수 없다.  
+
+<br/>
+
+#### Using where
+
+MySQL 서버는 내부적으로 크게 MySQL 엔진과 스토리지 엔진이라는 두 레이어로 나눠볼 수 있다.  
+각 스토리지 엔진은 디스크나 메모리상에서 필요한 레코드를 읽거나 저장하는 역할을 하며, MySQL 엔진은 스토리지 엔진으로부터 받은 레코드를 가공 또는 연산하는 작업을 수행한다.  MySQL 엔진 레이어에서 별도의 가공을 해서 필터링 작업을 처리한 경우에만 `Using where` 가 표시된다.  
+
+<br/>
+
+#### Zero limit  
+때로는 MySQL 서버에서 데이터 값이 아닌 쿼리 결과값의 메타데이터만 필요한 경우도 있다.  
+즉, 쿼리의 결과가 몇 개의 컬럼을 가지고, 각 컬럼의 타입은 무엇인지 등의 정보만 필요한 경우가 있다.  이런 경우에는 쿼리의 마지막에 "LIMIT 0"을 사용하면 되는데, 이 때 옵티마이저는 사용자의 의도(메타 정보만 조회하고자 하는 의도)를 알아채고 실제 테이블의 레코드는 전혀 읽지 않고 결과값의 메타 정보만 반환한다.  
+이 때 `Zero limit` 메시지가 표시된다.  
