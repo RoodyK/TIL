@@ -310,7 +310,7 @@ UPDATE 문장이 실행되면 커밋 실행 여부와 관계없이 InnoDB의 버
 디스크 데이터 파일에는 체크포인트나 InnoDB의 Write 스레드에 의해 새로운 값으로 업데이트돼 있을 수도 있고 아닐 수도 있다. (InnoDB가 ACID를 보장하기 때문에 일반적으로는 InnoDB의 버퍼 풀과 데이터 파일은 동일한 상태라고 가정해도 무방)  
 
 이 상태에서 레코드를 조회하면 시스템 변수(transaction_isolation)에 설정된 격리 수준에 따라 다르다.  
-- READ_COMMITED: InnoDB 버퍼 풀이 현재 가지고 있는 변경된 데이터를 읽어서 반환 
+- READ_UNCOMMITED: InnoDB 버퍼 풀이 현재 가지고 있는 변경된 데이터를 읽어서 반환 
 - READ_COMMITED나 그 이상의 격리 수준(REPEATABLE_READ, SERIALIZABLE)인 경우 아직 커밋되지 않았기 때문에 InnoDB 버퍼 풀이나 데이터 파일에 있는 내용 대신 변경되기 이전의 내용을 보관하고 있는 언두 영역의 데이터를 반환  
 
 이러한 과정을 MVCC라고 표현한다.  
