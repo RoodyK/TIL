@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+}
+
+group 'book'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // junit
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+}
