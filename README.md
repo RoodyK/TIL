@@ -27,8 +27,7 @@
 
 
 ## Git
-- [깃과 깃의 영역 및 상태](https://github.com/Reffy08/TIL/blob/main/Git/Git_State.md)
-- [깃의 명령어 정리](https://github.com/Reffy08/TIL/blob/main/Git/Git_Command.md) 
+- [깃 정리](https://github.com/Reffy08/TIL/blob/main/Git/Git.md) 
 
 
 ## Database
