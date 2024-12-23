@@ -4,7 +4,7 @@
 
 <br/>
 
-도커로 젠킨스 설치 및 깃허브의 SSH 설정은 <a href="https://dawncode.tistory.com/20" target="_blank">이전 포스팅</a>을 참조한다.  
+도커로 젠킨스 설치 및 깃허브의 SSH 설정 및 Credentials 설정은 <a href="https://dawncode.tistory.com/20" target="_blank">이전 포스팅</a>을 참조한다.  
 
 <br/>
 
@@ -34,7 +34,7 @@
 - 다재다능: 파이프라인은 포크/조인, 루프, 병렬 작업 수행 등의 복잡한 실제 CD 요구 사항을 지원한다.
 - 확장성: 파이프라인 플러그인은 DSL에 대한 맞춤 확장을 지원하며 다른 플러그인과의 통합을 위한 여러 옵션을 제공한다.  
 
-아래 히름도 젠킨스 파이프라인에서 쉽게 모델링된 하나의 CD 시나리오 예이다.
+아래 흐름도는 젠킨스 파이프라인에서 쉽게 모델링된 하나의 CD 시나리오 예이다.
 
 ![파이프라인 흐름도](/Jenkins/images/pipeline/01_젠킨스파이프라인_흐름도.png)
 
@@ -43,7 +43,7 @@
 
 ## 선언형 파이프라인과 스크립트형 파이프라인
 
-젠킨스 파이프라인은 선언형 파이프라인(Declarative Pipeline)과 스크립트형 파이프라인(Scripted Pipeline)이 있다.  
+젠킨스 파이프라인은 선언형 파이프라인(Declarative Pipeline)과 스크립트형 파이프라인(Scripted Pipeline)이 있다. 두 가지 문법은 호환되지 않으므로 주의해야 한다.
 
 <br/>
 
@@ -77,4 +77,150 @@
 <br/>
 <br/>
 
-## 선언형 파이프라인을 통한 깃허브 SSH 연동
+## 젠킨스 파이프라인으로 깃허브 SSH 연동
+
+젠킨스 파이프라인은 젠킨스 메인 페이지(대시보드)에서 New Item의 Pipeline 메뉴를 통해서 생성할 수 있다.    
+
+![파이프라인 생성](/Jenkins/images/pipeline/02_젠킨스파이프라인_생성.png)
+
+<br/>
+<br/>
+
+### 젠킨스 파이프라인 설정
+
+**General** 설정에서 파이프라인의 빌드가 동시에 실행되지 않게 설정, 중단된 파이프라인이 재시작되지 않게 설정, 깃허브 프로젝트 명시, 파이프라인 속도와 내구성을 조정 등의 기능들을 설정할 수 있다.  
+
+**Build Triggers** 설정에서는 다른 프로젝트가 완료 됐을 때 현재 프로젝트의 빌드를 트리거 하거나, 리눅스 Cron을 통한 빌드 주기 설정, 깃허브의 웹훅 설정 등의 트리거들을 설정할 수 있다.  
+
+<br/>
+<br/>
+
+### 파이프라인 코드 작성
+
+**Pipeline** 설정에서 파이프라인 코드를 작성하면 된다. 우선 선언형 파이프라인 코드를 작성한다.  
+
+```groovy
+pipeline {
+    agent any
+
+    environment {
+        CREDENTIALS_ID = "github-ssh"
+        REPO_URL = "git@github.com:RoodyK/jenkins-practice.git"
+        GIT_BRANCH = "main"
+    }
+
+    stages {
+        stage("Checkout") {
+            steps {
+                echo "Checkout Github Project"
+                git branch: "${GIT_BRANCH}", credentialsId: "${CREDENTIALS_ID}", url: "${REPO_URL}"
+            }
+        }
+        stage("Build") {
+            steps {
+                echo "Project Build"
+                sh "./gradlew clean build"
+            }
+        }
+        stage("Deploy") {
+            steps {
+                sh "echo $WORKSPACE"
+                sh "ls -arlth '$WORKSPACE/build/libs'"
+            }
+        }
+    }
+    post {
+        always {
+            echo "Always Run After Build"
+        }
+        success {
+            echo "Build Success"
+        }
+        failure {
+            echo "Build Fail"
+        }
+    }
+}
+```
+
+파이프라인 코드를 간단히 설명한다. 
+
+- `pipeline {}` 블록을 최상위에 작성하며, 모든 파이프라인 코드는 이 안에 작성된다.
+- `agent` 파이프라인은 특정 스테이지가 실행될 노드나 환경을 정의하는데 사용되며 any값은 어떤 환경도 가능하다는 의미다.
+- `environment` 파이프라인 블록안에는 전체 파이프라인에서 사용될 환경 변수를 정의한다.
+- `stages`는 파이프라인의 주요 단계를 정의하는 블록으로 각 단계를 `stage`로 정의하고 `steps`로 각 단계에서 수행할 작업을 정의한다.
+- `stage` 에서 "Checkout", "Build", "Deploy"는 정해진 값이 아니며, 관례를 정해서 사용하는 것이 좋다. 
+- "Checkout" 단계에서 깃허브에서 소스코드를 가져오고, "Build" 단계에서 프로젝트를 빌드하고, "Deploy" 단계에서 프로젝트의 빌드된 파일이 존재하는지 확인한다.
+- `post` 블록에서 스테이지를 실행 후에 수행할 작업을 정의한다. always 블록은 항상 실행되고, success 블록은 파이프라인이 성공하는 경우에만 실행되고, failure 블록은 파이프라인이 실패했을 경우에 실행된다.
+
+이제 파이프라인 코드를 작성하고 저장한다.  
+
+<br/>
+
+### 파이프라인 빌드 결과 확인
+
+저장한 파이프라인 코드를 이미지와 같이 빌드한 뒤 빌드한 결과를 클릭한다.  
+
+![파이프라인 빌드](/Jenkins/images/pipeline/03_파이프라인_빌드.png)  
+
+<br/>
+
+빌드한 파이프라인의 결과를 확인하면 "Console Output" 메뉴로 전체 결과를 확인할 수도 있고, "Pipeline Console"에서 각 단계별 결과를 구분해서 확인할 수 도 있다. 그리고 Workspace 메뉴로 빌드 결과로 생성된 파일도 확인할 수 있다.  
+
+![파이프라인 빌드결과](/Jenkins/images/pipeline/04_빌드결과.png) 
+
+<br/>
+
+아래는 "Pipeline Console" 메뉴로 확인한 각 단계별 결과로 파이프라인 코드에서 정의한 stage명과 단계별로 실행된 결과 코드를 확인할 수 있다.  
+
+![파이프라인 단계별결과](/Jenkins/images/pipeline/05_단계별_빌드결과.png)  
+
+<br/>
+
+### 스크립트형 파이프라인 코드 
+
+위에서 작성한 선언형 파이프라인 코드를 스크립트형 파이프라인 코드로 작성한다. 그루비 문법을 사용하며 자세한 설명은 생략한다.  
+스크립트형 파이프라인은 try-catch-finally 절을 사용해서 코드를 작성하고 예외를 처리할 수 있다.  
+
+```groovy
+node {
+    // workspace clean
+    deleteDir()
+    
+    def gitUrl = "git@github.com:RoodyK/jenkins-practice.git"
+    def credentialsId = "github-ssh"
+    
+    try {
+        stage("Checkout") {
+            echo "Git SSH Checkout"
+            checkout([
+                $class: "GitSCM",
+                branches: [[name: "*/main"]],
+                userRemoteConfigs: [[
+                    url: gitUrl,
+                    credentialsId: credentialsId
+                ]]
+            ])
+        }
+        stage("Build") {
+            echo "Project Build"
+            sh "./gradlew clean build"
+        }
+        stage("Deploy") {
+            sh "echo $WORKSPACE"
+            sh "ls -arlth '$WORKSPACE/build/libs'"
+        }
+    } catch (Exception e) {
+        sh "echo 'Build Fail: ${e.message}'"
+    }
+}
+```
+
+코드에서 사용된 checkout() 함수는 SCM(Source Code Management) 플러그인을 통해 동작하며, 일반적으로 Git SCM 플러그인을 통해 Git 리포지토리와 상호작용할 때 주로 사용된다.   
+
+<br/>
+
+지금까지 젠킨스 파이프라인을 사용해서 깃허브와 연동하는 방법을 설명했다. 다음에 파이프라인 문법과 예외처리를 한번 정리할 것이다.
+
+<br/>
+<br/>
