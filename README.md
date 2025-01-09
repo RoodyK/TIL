@@ -4,7 +4,8 @@
 <br/>
 <br/>
 
-## 클린코드(CleanCode)
+## 책
+### 클린코드(CleanCode)
 - [02. 의미있는 이름](/CleanCode/02_의미있는이름.md)
 - [03. 함수](/CleanCode/03_함수.md)
 - [04. 주석](/CleanCode/04_주석.md)
@@ -42,7 +43,7 @@
 
 
 ## SQL_Tuning
-### Oracle
+### 오라클(Oracle)
 - [SQL 처리과정과 I/O](/SQL_Tuning/Oracle/SQL_Processing_and_IO.md)
 - [인덱스 기본](/SQL_Tuning/Oracle/Index_Basic.md)
 - [인덱스 튜닝](/SQL_Tuning/Oracle/Index_Tuning.md)
@@ -62,9 +63,13 @@
 - [도커 이미지 이해하기](/Docker/도커_이미지이해하기.md)
 - [Dockerfile 개념 및 정리](/Docker/Dockerfile_이해하기.md)
 
-## Jenkins
+## 젠킨스(Jenkins)
 - [젠킨스 깃 SSH 연결에러 문제 해결방법](/Jenkins/깃허브_리포지토리_SSH_연결에러.md)
 - [젠킨스 정리 및 깃 SSH 연동](/Jenkins/도커_젠킨스_깃허브_연동하기.md)
 - [젠킨스 파이프라인으로 깃허브 SSH 연동](/Jenkins/젠킨스_파이프라인_깃허브_SSH_연동.md)
 - [젠킨스 파이프라인 문법 및 예외처리](/Jenkins/젠킨스_파이프라인_문법_예외처리.md)
 
+## 카프카(Kafka)
+- [카프카 개념 정리](/Kafka/카프카_개념_정리.md)
+- [카프카 브로커, 주키퍼 설정](/Kafka/카프카_설정.md)
+- [카프카 CLI 명령어 정리](/Kafka/카프카_CLI_명령어_정리.md)
