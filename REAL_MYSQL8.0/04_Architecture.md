@@ -261,7 +261,7 @@ linux > cat mysql_schema.json
 <br/>
 
 ## InnoDB 스토리지 엔진 아키텍처
-InnoDB는 MySQL에서 사용할 수 있는 스토리지 엔진 중 거의 유일하게 레코드 기반의 잠금을 제공하며, 그 때문에 높은 노ㅠ은 동시성 처리가 가능하고 안정적이며 성능이 뛰어나다.  
+InnoDB는 MySQL에서 사용할 수 있는 스토리지 엔진 중 거의 유일하게 레코드 기반의 잠금을 제공하며, 그 때문에 높은 동시성 처리가 가능하고 안정적이며 성능이 뛰어나다.  
 
 ![Alt text](https://velog.velcdn.com/images/klm03025/post/c22e70b8-b086-42cc-ae31-c367b88fd4a1/image.png)  
 
