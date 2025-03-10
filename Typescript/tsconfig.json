@@ -1,0 +1,26 @@
+/*
+  node 버전을 20버전 이상을 사용할 때 다음 에러가 발생한다.
+  ```
+  Cannot find module 'undici-types'. 
+  Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+  ```
+  1. Node 버전과 맞추어 `npm install -y @types/node@20.8.0` 버전을 설치하면 에러가 나지 않는다.
+  2. "skipLibCheck": true 설정을 한다.
+*/
+{
+  "compilerOptions": {
+    // 컴파일 결과로 생성되는 자바스크립트 버전
+    "target": "ES2016",
+    // 변환되는 자바스크립트 코드의 모듈 시스템 설정
+    "module": "ESNext",
+    // 타입스크립트 코드 파일의 컴파일 결과인 자바스크립트 파일을 생성할 위치
+    "outDir": "output",
+    // 엄격한 수준 설정
+    "strict": true,
+    // TypeScript 컴파일러가 타입 선언 파일(typings)을 검사할 때 라이브러리 파일에 대한 타입 검사를 건너뛰도록 한다.
+    "skipLibCheck": true,
+  },
+  // tsc를 입력 시 src 폴더 하위의 모든 타입스크립트 파일이 동시에 컴파일 됨
+  // typescript 의존성을 global하게 설치하지 않았다면 npx tsc 사용
+  "include": ["src"]
+}
