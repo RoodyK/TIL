@@ -100,3 +100,90 @@ let member: User = {
 // 타입 단언은 컴파일러에게 타입이 뭔지 알고있다고 알려주는 방법이다.
 let someValue: any = "this is a string";
 let strLength: number = (<string>someValue).length;
+
+
+/**
+ * 타입 단언 => 값 as 타입
+ * 타입을 단언할 때 값이 타입의 슈퍼타입이거나 서브타입이어야 한다.
+ * as는 타입을 강제로 변환하는 문법이다. 
+ * as는 타입 안전성을 위협할 수 있다. 잘못된 타입으로 단언할 경우 런타임 에러가 발생할 수 있기 때문에, as를 사용할 때는 확실한 이유가 있어야 한다.
+ */
+type Person = {
+  name: string;
+  age: number;
+}
+
+// 빈 객체를 할당하면 에러 발생
+// let person: Person = {}
+
+// 빈 객체가 Person 타입이라고 타입 단언
+let person2: Person = {} as Person
+
+// 초과 프로퍼티가 존재하지만 Person 타입을 단언해서 초과 프로퍼티 검사를 피함
+let lee: Person = {
+  name: "kang",
+  age: 22,
+  phone: "010-1111-1111"
+} as Person
+
+enum custom {A, B, C};
+
+type userA = {
+  val: custom,
+  name: "kang"
+}
+
+function ex(result: userA): void {
+  if (result.val == custom.A){
+    console.log("A");
+    return;
+  }
+
+  if (result.val == custom.B){
+    console.log("A");
+    return;
+  }
+}
+
+let kang: userA = {
+  val: custom.A,
+  name: "kang"
+}
+
+ex(kang);
+
+
+/**
+ * 사용자 정의 타입가드
+ * 사용자 정의 타입가드란 true 또는 false를 반환하는 함수를 이용해 우리의 생각대로 타입 가드를 만들 수 있도록 도와주는 타입스크립트 문법이다.
+ */
+type Dog = {
+  name: string;
+  isBark: boolean;
+};
+
+type Cat = {
+  name: string;
+  isScratch: boolean;
+};
+
+type Animal = Dog | Cat;
+
+// is 문법은 타입스크립트에서 타입 좁히기를 위해 사용된다. 
+// isDog 함수의 반환 타입은 animal is Dog인데, 이것은 animal이 Dog 타입일 때만 참이 된다는 것을 의미한다.
+function isDog(animal: Animal): animal is Dog {
+  return (animal as Dog).isBark !== undefined;
+}
+
+// Cat 타입인지 확인하는 타입가드
+function isCat(animal: Animal): animal is Cat {
+  return (animal as Cat).isScratch !== undefined;
+}
+
+function warning(animal: Animal) {
+  if (isDog(animal)) {
+    console.log(animal.isBark ? "짖습니다" : "안짖어요");
+  } else {
+    console.log(animal.isScratch ? "할큅니다" : "안할퀴어요");
+  }
+}
