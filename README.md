@@ -15,15 +15,15 @@
 - [10. 클래스](/CleanCode/10_클래스.md)
 
 ### Real MySQL 8.0
-- [02. 설정](/REAL_MYSQL8.0/02_Setting.md)
-- [03. 사용자 및 권한](/REAL_MYSQL8.0/03_User_And_%20Role.md)
-- [04. 아키텍처](/REAL_MYSQL8.0/04_Architecture.md)
-- [05. 트랜잭션과 잠금](/REAL_MYSQL8.0/05_Transaction_And_Rock.md)
-- [06. 데이터 압축](/REAL_MYSQL8.0/06_Data_Compression.md)
-- [07. 데이터 암호화](/REAL_MYSQL8.0/07_Data_Encryption.md)
-- [08. 인덱스](/REAL_MYSQL8.0/08_Index.md)
-- [09. 옵티마이저와 힌트](/REAL_MYSQL8.0/09_Optimizer_and_Hint.md)
-- [10. 실행계획](/REAL_MYSQL8.0/10_Explain_Plan.md)
+- [02. 설정](/REAL-MYSQL8.0/02_Setting.md)
+- [03. 사용자 및 권한](/REAL-MYSQL8.0/03_User_And_%20Role.md)
+- [04. 아키텍처](/REAL-MYSQL8.0/04_Architecture.md)
+- [05. 트랜잭션과 잠금](/REAL-MYSQL8.0/05_Transaction_And_Rock.md)
+- [06. 데이터 압축](/REAL-MYSQL8.0/06_Data_Compression.md)
+- [07. 데이터 암호화](/REAL-MYSQL8.0/07_Data_Encryption.md)
+- [08. 인덱스](/REAL-MYSQL8.0/08_Index.md)
+- [09. 옵티마이저와 힌트](/REAL-MYSQL8.0/09_Optimizer_and_Hint.md)
+- [10. 실행계획](/REAL-MYSQL8.0/10_Explain_Plan.md)
 
 ## HTTP
 - [HTTP 메시지](/HTTP/HTTP_Message.md)
@@ -55,12 +55,12 @@
 
 ## SQL_Tuning
 ### 오라클(Oracle)
-- [SQL 처리과정과 I/O](/SQL_Tuning/Oracle/SQL_Processing_and_IO.md)
-- [인덱스 기본](/SQL_Tuning/Oracle/Index_Basic.md)
-- [인덱스 튜닝](/SQL_Tuning/Oracle/Index_Tuning.md)
-- [조인 튜닝](/SQL_Tuning/Oracle/Join_Tuning.md)
-- [기본 DML 튜닝](/SQL_Tuning/Oracle/Basic_DML_Tuning.md)
-- [SQL 옵티마이저](/SQL_Tuning/Oracle/SQL_Optimizer.md)
+- [SQL 처리과정과 I/O](/SQL-Tuning/Oracle/SQL_Processing_and_IO.md)
+- [인덱스 기본](/SQL-Tuning/Oracle/Index_Basic.md)
+- [인덱스 튜닝](/SQL-Tuning/Oracle/Index_Tuning.md)
+- [조인 튜닝](/SQL-Tuning/Oracle/Join_Tuning.md)
+- [기본 DML 튜닝](/SQL-Tuning/Oracle/Basic_DML_Tuning.md)
+- [SQL 옵티마이저](/SQL-Tuning/Oracle/SQL_Optimizer.md)
 
 ## 리눅스(Linux)
 - [리눅스 기본 정의 및 개념 정리](/Liunx/Linux_definition.md)
