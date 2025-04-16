@@ -11,6 +11,8 @@ repositories {
 
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    implementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+    runtimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {
