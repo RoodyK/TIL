@@ -384,7 +384,7 @@ SELECT * FROM employees WHERE first_name = 'Matt';
 
 ## 실행 계획 확인 
 
-실행 계획은 DESC 또는 EXPLAIN 명령으로 확인할 ㅅ ㅜ있다.  
+실행 계획은 DESC 또는 EXPLAIN 명령으로 확인할 수 있다.  
 
 <br/>
 <br/>
@@ -627,7 +627,7 @@ FROM employees e WHERE e.first_name = 'Matt';
 5.5 버전까지는 서브쿼리가 FROM 절에 사용된 경우 항상 DERIVED인 실행 계획을 만든다.  
 5.6부터 옵티마이저 옵션(optimizer_swtich)에 따라 FROM 절의 서브쿼리를 외부 쿼리와 통합하는 형태의 최적화가 수행되기도 한다.  
 DERIVED는 단위 SELECT 쿼리의 실행 결과로 메모리나 디스크에 임시 테이블을 생성하는 것을 의마한다.  
-5.6 버전부터는 옵티마이저 옵션에 ㄷ따라 쿼리의 특성에 맞게 임시 테이블에도 인덱스를 추가해서 만들 수 있게 최적화 됐다.  
+5.6 버전부터는 옵티마이저 옵션에 따라 쿼리의 특성에 맞게 임시 테이블에도 인덱스를 추가해서 만들 수 있게 최적화 됐다.  
 
 ```sql
 EXPLAIN
